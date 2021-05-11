@@ -35,12 +35,13 @@ ROOT.FWLiteEnabler.enable()
 
 sys.path.append('../ChiLib_CMS_Validation')
 from graphicFunctions import getHisto
+from default import *
 
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
 
-tp_1 = 'ElectronMcSignalValidator'
-folderName = '/sps/cms/chiron/CMSSW_11_2_0_pre9-16c-2/' # be careful to not forget the '/' at the end of the path
+#tp_1 = 'ElectronMcSignalValidator'
+#folderName = '/sps/cms/chiron/CMSSW_11_2_0_pre9-16c-2/' # be careful to not forget the '/' at the end of the path
 
 from DataFormats.FWLite import Handle, Events
 
@@ -217,7 +218,7 @@ def func_CreateKS(br, nbFiles):
     nbins = 100 
     
     # create folder 
-    folder = 'Extraction_9/'
+    #folder = 'Extraction_9/'
     if not os.path.exists(folder):
         try:
             os.makedirs(folder)
@@ -259,21 +260,6 @@ def func_CreateKS(br, nbFiles):
         print('\n%d - %s' %(i, name))
         df = pd.read_csv(name)
         
-        # create if necessary folder with name h_names[i]
-        #folder = folderName + 'Images/' + branches[i]
-        '''
-        folder = 'Extraction_6/'
-        if not os.path.exists(folder):
-            try:
-                os.makedirs(folder)
-            except OSError as e:
-                if e.errno != errno.EEXIST: # the folder did not exist
-                    raise  # raises the error again
-            print('Creation of %s release folder\n' % str(branches[i]))
-        else:
-            print('Folder %s already created\n' % str(branches[i]))
-        '''
-
         h1 = getHisto(f_rel, tp_1)
         #print("h1")
         #print(h1)

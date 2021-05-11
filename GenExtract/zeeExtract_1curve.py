@@ -15,7 +15,7 @@ import matplotlib.dates as md
 matplotlib.use('agg')
 from matplotlib import pyplot as plt
 
-import seaborn # only with cmsenv on cca.in2p3.fr
+#import seaborn # only with cmsenv on cca.in2p3.fr
 
 # lines below are only for func_Extract
 from sys import argv
@@ -37,7 +37,7 @@ sys.path.append('../ChiLib_CMS_Validation')
 from graphicFunctions import getHisto
 
 # these line for daltonians !
-seaborn.set_palette('colorblind')
+#seaborn.set_palette('colorblind')
 
 tp_1 = 'ElectronMcSignalValidator'
 folderName = '/sps/cms/chiron/CMSSW_11_2_0_pre9-16c-2/' # be careful to not forget the '/' at the end of the path

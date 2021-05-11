@@ -1,5 +1,5 @@
 #!/bin/bash
-# This file is called . extractKS.sh & NOT ./extractKS.sh
+# This file is called . installKStools.sh & NOT ./installKStools.sh
 #
 
 git clone https://github.com/archiron/KS_Tools KS_Tools

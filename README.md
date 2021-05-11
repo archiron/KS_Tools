@@ -27,8 +27,8 @@ Be careful, sometimes it is difficult on the POLUI computers.
 ### Extraction of the files
 you need to load 2 files more :
 the 2 files for the current validation [1] and put them into the DATA folder.  
-launch the extraction with : python zeeExtract_1curve.py
-####WARNING : still need of cmsenv!
+launch the extraction with : python zeeExtract_1curve.py  
+####WARNING : still need of cmsenv!  
 
 ####Some point to modify into the zeeExtract_1curve.py file :
 the folderName where are located the generated ROOT files,

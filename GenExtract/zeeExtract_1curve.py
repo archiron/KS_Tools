@@ -42,11 +42,6 @@ from default import *
 
 from DataFormats.FWLite import Handle, Events
 
-def getHisto(file, tp):
-    path = 'DQMData/Run 1/EgammaV/Run summary/' + tp
-    t_path = file.Get(path)
-    return t_path # t5
-
 def getListFiles(path):
     #print('path : %s' % path)
     onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]

@@ -40,9 +40,6 @@ from default import *
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
 
-#tp_1 = 'ElectronMcSignalValidator'
-#folderName = '/sps/cms/chiron/CMSSW_11_2_0_pre9-16c-2/' # be careful to not forget the '/' at the end of the path
-
 from DataFormats.FWLite import Handle, Events
 
 def getHisto(file, tp):
@@ -218,7 +215,6 @@ def func_CreateKS(br, nbFiles):
     nbins = 100 
     
     # create folder 
-    #folder = 'Extraction_9/'
     if not os.path.exists(folder):
         try:
             os.makedirs(folder)

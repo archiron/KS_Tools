@@ -2,11 +2,11 @@
 # using: 
 # Revision: 1.19 
 # Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
-# with command line options: step3 --conditions auto:phase2_realistic_T21 --customise SLHCUpgradeSimulations/Configuration/aging.customise_aging_1000 --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO --era Phase2C11M9 --eventcontent FEVTDEBUGHLT,MINIAODSIM,DQM --filein file:step2.root --fileout file:step3.root --geometry Extended2026D76 --nThreads 8 --no_exec --number 10 --python_filename step_3_cfg.py --step RAW2DIGI,L1Reco,RECO,RECOSIM,PAT,VALIDATION:@phase2Validation+@miniAODValidation,DQM:@phase2+@miniAODDQM
+# with command line options: step3 --runUnscheduled --conditions auto:run2_mc -s RAW2DIGI,L1Reco,RECO,RECOSIM,EI,PAT,VALIDATION:@standardValidationNoHLT+@miniAODValidation,DQM:@standardDQMFakeHLT+@miniAODDQM+@L1TEgamma --datatier GEN-SIM-RECO,MINIAODSIM,DQMIO -n 9000 --era Run2_2016 --eventcontent RECOSIM,MINIAODSIM,DQM --io RECOUP15_L1TEgDQM.io --python RECOUP15_L1TEgDQM.py --conditions=110X_mcRun2_asymptotic_v5 --filein file:step2.root --fileout file:step3.root --nThreads 8
 import FWCore.ParameterSet.Config as cms
 import os, sys
 
-from Configuration.Eras.Era_Phase2C11M9_cff import Phase2C11M9
+from Configuration.Eras.Era_Run2_2016_cff import Run2_2016
 
 if len(sys.argv) > 1:
     print "step 1 - arg. 0 :", sys.argv[0]
@@ -23,7 +23,7 @@ else:
     path = ''
     max_number = 10 # number of events
 
-process = cms.Process('RECO',Phase2C11M9)
+process = cms.Process('RECO',Run2_2016)
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -31,12 +31,13 @@ process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
-process.load('Configuration.Geometry.GeometryExtended2026D76Reco_cff')
+process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.RawToDigi_cff')
 process.load('Configuration.StandardSequences.L1Reco_cff')
 process.load('Configuration.StandardSequences.Reconstruction_cff')
 process.load('Configuration.StandardSequences.RecoSim_cff')
+process.load('CommonTools.ParticleFlow.EITopPAG_cff')
 process.load('PhysicsTools.PatAlgos.slimming.metFilterPaths_cff')
 process.load('Configuration.StandardSequences.PATMC_cff')
 process.load('Configuration.StandardSequences.Validation_cff')
@@ -51,8 +52,9 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:step2.root'),
-    #fileNames = cms.untracked.vstring('file:step2_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    #fileNames = cms.untracked.vstring('file:step2.root'),
+    fileNames = cms.untracked.vstring('file:step2_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    #fileNames = cms.untracked.vstring('file:' + path + '/step2_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -63,11 +65,10 @@ process.options = cms.untracked.PSet(
     SkipEvent = cms.untracked.vstring(),
     allowUnscheduled = cms.obsolete.untracked.bool,
     canDeleteEarly = cms.untracked.vstring(),
-    deleteNonConsumedUnscheduledModules = cms.untracked.bool(True),
     emptyRunLumiMode = cms.obsolete.untracked.string,
     eventSetup = cms.untracked.PSet(
         forceNumberOfConcurrentIOVs = cms.untracked.PSet(
-            allowAnyLabel_=cms.required.untracked.uint32
+
         ),
         numberOfConcurrentIOVs = cms.untracked.uint32(1)
     ),
@@ -86,21 +87,22 @@ process.options = cms.untracked.PSet(
 
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
-    annotation = cms.untracked.string('step3 nevts:10'),
+    annotation = cms.untracked.string('step3 nevts:9000'),
     name = cms.untracked.string('Applications'),
     version = cms.untracked.string('$Revision: 1.19 $')
 )
 
 # Output definition
 
-process.FEVTDEBUGHLToutput = cms.OutputModule("PoolOutputModule",
+process.RECOSIMoutput = cms.OutputModule("PoolOutputModule",
     dataset = cms.untracked.PSet(
         dataTier = cms.untracked.string('GEN-SIM-RECO'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:step3.root'),
-    #fileName = cms.untracked.string('file:step3_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
-    outputCommands = process.FEVTDEBUGHLTEventContent.outputCommands,
+    #fileName = cms.untracked.string('file:step3.root'),
+    fileName = cms.untracked.string('file:step3_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    #fileName = cms.untracked.string('file:' + path + '/step3_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    outputCommands = process.RECOSIMEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
 
@@ -114,8 +116,9 @@ process.MINIAODSIMoutput = cms.OutputModule("PoolOutputModule",
     dropMetaData = cms.untracked.string('ALL'),
     eventAutoFlushCompressedSize = cms.untracked.int32(-900),
     fastCloning = cms.untracked.bool(False),
-    fileName = cms.untracked.string('file:step3_inMINIAODSIM.root'),
-    #fileName = cms.untracked.string('file:step3_inMINIAODSIM_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    fileName = cms.untracked.string('file:step3_inMINIAODSIM_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    #fileName = cms.untracked.string('file:' + path + '/step3_inMINIAODSIM_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    
     outputCommands = process.MINIAODSIMEventContent.outputCommands,
     overrideBranchesSplitLevel = cms.untracked.VPSet(
         cms.untracked.PSet(
@@ -176,8 +179,8 @@ process.DQMoutput = cms.OutputModule("DQMRootOutputModule",
         dataTier = cms.untracked.string('DQMIO'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:step3_inDQM.root'),
-    #fileName = cms.untracked.string('file:step3_inDQM_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    fileName = cms.untracked.string('file:step3_inDQM_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    #fileName = cms.untracked.string('file:' + path + '/step3_inDQM_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
     outputCommands = process.DQMEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
@@ -190,100 +193,67 @@ process.mix.digitizers = cms.PSet()
 for a in process.aliases: delattr(process, a)
 process.RandomNumberGeneratorService.restoreStateLabel=cms.untracked.string("randomEngineStateProducer")
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T21', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, '110X_mcRun2_asymptotic_v5', '')
 
 # Path and EndPath definitions
 process.raw2digi_step = cms.Path(process.RawToDigi)
 process.L1Reco_step = cms.Path(process.L1Reco)
 process.reconstruction_step = cms.Path(process.reconstruction)
 process.recosim_step = cms.Path(process.recosim)
+process.eventinterpretaion_step = cms.Path(process.EIsequence)
 process.Flag_trackingFailureFilter = cms.Path(process.goodVertices+process.trackingFailureFilter)
 process.Flag_goodVertices = cms.Path(process.primaryVertexFilter)
 process.Flag_CSCTightHaloFilter = cms.Path(process.CSCTightHaloFilter)
-process.Flag_trkPOGFilters = cms.Path(~process.logErrorTooManyClusters)
+process.Flag_trkPOGFilters = cms.Path(process.trkPOGFilters)
 process.Flag_HcalStripHaloFilter = cms.Path(process.HcalStripHaloFilter)
 process.Flag_trkPOG_logErrorTooManyClusters = cms.Path(~process.logErrorTooManyClusters)
-process.Flag_hfNoisyHitsFilter = cms.Path(process.hfNoisyHitsFilter)
 process.Flag_EcalDeadCellTriggerPrimitiveFilter = cms.Path(process.EcalDeadCellTriggerPrimitiveFilter)
 process.Flag_ecalLaserCorrFilter = cms.Path(process.ecalLaserCorrFilter)
 process.Flag_globalSuperTightHalo2016Filter = cms.Path(process.globalSuperTightHalo2016Filter)
-process.Flag_eeBadScFilter = cms.Path()
+process.Flag_eeBadScFilter = cms.Path(process.eeBadScFilter)
 process.Flag_METFilters = cms.Path(process.metFilters)
 process.Flag_chargedHadronTrackResolutionFilter = cms.Path(process.chargedHadronTrackResolutionFilter)
 process.Flag_globalTightHalo2016Filter = cms.Path(process.globalTightHalo2016Filter)
 process.Flag_CSCTightHaloTrkMuUnvetoFilter = cms.Path(process.CSCTightHaloTrkMuUnvetoFilter)
-process.Flag_HBHENoiseIsoFilter = cms.Path()
+process.Flag_HBHENoiseIsoFilter = cms.Path(process.HBHENoiseFilterResultProducer+process.HBHENoiseIsoFilter)
 process.Flag_BadChargedCandidateSummer16Filter = cms.Path(process.BadChargedCandidateSummer16Filter)
 process.Flag_hcalLaserEventFilter = cms.Path(process.hcalLaserEventFilter)
 process.Flag_BadPFMuonFilter = cms.Path(process.BadPFMuonFilter)
 process.Flag_ecalBadCalibFilter = cms.Path(process.ecalBadCalibFilter)
-process.Flag_HBHENoiseFilter = cms.Path()
-process.Flag_trkPOG_toomanystripclus53X = cms.Path()
+process.Flag_HBHENoiseFilter = cms.Path(process.HBHENoiseFilterResultProducer+process.HBHENoiseFilter)
+process.Flag_trkPOG_toomanystripclus53X = cms.Path(~process.toomanystripclus53X)
 process.Flag_EcalDeadCellBoundaryEnergyFilter = cms.Path(process.EcalDeadCellBoundaryEnergyFilter)
 process.Flag_BadChargedCandidateFilter = cms.Path(process.BadChargedCandidateFilter)
-process.Flag_trkPOG_manystripclus53X = cms.Path()
+process.Flag_trkPOG_manystripclus53X = cms.Path(~process.manystripclus53X)
 process.Flag_BadPFMuonSummer16Filter = cms.Path(process.BadPFMuonSummer16Filter)
 process.Flag_muonBadTrackFilter = cms.Path(process.muonBadTrackFilter)
 process.Flag_CSCTightHalo2015Filter = cms.Path(process.CSCTightHalo2015Filter)
-process.Flag_BadPFMuonDzFilter = cms.Path(process.BadPFMuonDzFilter)
-process.prevalidation_step = cms.Path(process.baseCommonPreValidation)
-process.prevalidation_step1 = cms.Path(process.globalPrevalidationTracking)
-process.prevalidation_step2 = cms.Path(process.globalPrevalidationMuons)
-process.prevalidation_step3 = cms.Path(process.globalPrevalidationJetMETOnly)
-process.prevalidation_step4 = cms.Path(process.prebTagSequenceMC)
-process.prevalidation_step5 = cms.Path(process.produceDenoms)
-process.prevalidation_step6 = cms.Path(process.globalPrevalidationHCAL)
-process.prevalidation_step7 = cms.Path(process.globalPrevalidationHGCal)
-process.prevalidation_step8 = cms.Path(process.prevalidationMiniAOD)
-process.validation_step = cms.EndPath(process.baseCommonValidation)
-process.validation_step1 = cms.EndPath(process.globalValidationTrackingOnly)
-process.validation_step2 = cms.EndPath(process.globalValidationMuons)
-process.validation_step3 = cms.EndPath(process.globalValidationJetMETonly)
-process.validation_step4 = cms.EndPath(process.electronValidationSequence)
-process.validation_step5 = cms.EndPath(process.photonValidationSequence)
-process.validation_step6 = cms.EndPath(process.bTagPlotsMCbcl)
-process.validation_step7 = cms.EndPath((process.TauValNumeratorAndDenominatorQCD+process.TauValNumeratorAndDenominatorRealData+process.TauValNumeratorAndDenominatorRealElectronsData+process.TauValNumeratorAndDenominatorRealMuonsData+process.TauValNumeratorAndDenominatorZEE+process.TauValNumeratorAndDenominatorZMM+process.TauValNumeratorAndDenominatorZTT))
-process.validation_step8 = cms.EndPath(process.globalValidationHCAL)
-process.validation_step9 = cms.EndPath(process.globalValidationHGCal)
-process.validation_step10 = cms.EndPath(process.globalValidationMTD)
-process.validation_step11 = cms.EndPath(process.globalValidationOuterTracker)
-process.validation_step12 = cms.EndPath(process.validationECALPhase2)
-process.validation_step13 = cms.EndPath(process.trackerphase2ValidationSource)
-process.validation_step14 = cms.EndPath(process.validationMiniAOD)
-process.dqmoffline_step = cms.EndPath(process.DQMOfflineTracking)
-process.dqmoffline_1_step = cms.EndPath(process.DQMOuterTracker)
-process.dqmoffline_2_step = cms.EndPath(process.DQMOfflineTrackerPhase2)
-process.dqmoffline_3_step = cms.EndPath(process.DQMOfflineMuon)
-process.dqmoffline_4_step = cms.EndPath(process.DQMOfflineHcal)
-process.dqmoffline_5_step = cms.EndPath(process.DQMOfflineHcal2)
-process.dqmoffline_6_step = cms.EndPath(process.DQMOfflineEGamma)
-process.dqmoffline_7_step = cms.EndPath(process.DQMOfflineMiniAOD)
+process.prevalidation_step = cms.Path(process.prevalidationNoHLT)
+process.prevalidation_step1 = cms.Path(process.prevalidationMiniAOD)
+process.validation_step = cms.EndPath(process.validationNoHLT)
+process.validation_step1 = cms.EndPath(process.validationMiniAOD)
+process.dqmoffline_step = cms.EndPath(process.DQMOfflineFakeHLT)
+process.dqmoffline_1_step = cms.EndPath(process.DQMOfflineMiniAOD)
+process.dqmoffline_2_step = cms.EndPath(process.DQMOfflineL1TEgamma)
 process.dqmofflineOnPAT_step = cms.EndPath(process.PostDQMOffline)
 process.dqmofflineOnPAT_1_step = cms.EndPath(process.PostDQMOfflineMiniAOD)
-process.FEVTDEBUGHLToutput_step = cms.EndPath(process.FEVTDEBUGHLToutput)
+process.dqmofflineOnPAT_2_step = cms.EndPath(process.PostDQMOffline)
+process.RECOSIMoutput_step = cms.EndPath(process.RECOSIMoutput)
 process.MINIAODSIMoutput_step = cms.EndPath(process.MINIAODSIMoutput)
 process.DQMoutput_step = cms.EndPath(process.DQMoutput)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.raw2digi_step,process.L1Reco_step,process.reconstruction_step,process.recosim_step,process.Flag_HBHENoiseFilter,process.Flag_HBHENoiseIsoFilter,process.Flag_CSCTightHaloFilter,process.Flag_CSCTightHaloTrkMuUnvetoFilter,process.Flag_CSCTightHalo2015Filter,process.Flag_globalTightHalo2016Filter,process.Flag_globalSuperTightHalo2016Filter,process.Flag_HcalStripHaloFilter,process.Flag_hcalLaserEventFilter,process.Flag_EcalDeadCellTriggerPrimitiveFilter,process.Flag_EcalDeadCellBoundaryEnergyFilter,process.Flag_ecalBadCalibFilter,process.Flag_goodVertices,process.Flag_eeBadScFilter,process.Flag_ecalLaserCorrFilter,process.Flag_trkPOGFilters,process.Flag_chargedHadronTrackResolutionFilter,process.Flag_muonBadTrackFilter,process.Flag_BadChargedCandidateFilter,process.Flag_BadPFMuonFilter,process.Flag_BadPFMuonDzFilter,process.Flag_hfNoisyHitsFilter,process.Flag_BadChargedCandidateSummer16Filter,process.Flag_BadPFMuonSummer16Filter,process.Flag_trkPOG_manystripclus53X,process.Flag_trkPOG_toomanystripclus53X,process.Flag_trkPOG_logErrorTooManyClusters,process.Flag_METFilters,process.prevalidation_step,process.prevalidation_step1,process.prevalidation_step2,process.prevalidation_step3,process.prevalidation_step4,process.prevalidation_step5,process.prevalidation_step6,process.prevalidation_step7,process.prevalidation_step8,process.validation_step,process.validation_step1,process.validation_step2,process.validation_step3,process.validation_step4,process.validation_step5,process.validation_step6,process.validation_step7,process.validation_step8,process.validation_step9,process.validation_step10,process.validation_step11,process.validation_step12,process.validation_step13,process.validation_step14,process.dqmoffline_step,process.dqmoffline_1_step,process.dqmoffline_2_step,process.dqmoffline_3_step,process.dqmoffline_4_step,process.dqmoffline_5_step,process.dqmoffline_6_step,process.dqmoffline_7_step,process.dqmofflineOnPAT_step,process.dqmofflineOnPAT_1_step,process.FEVTDEBUGHLToutput_step,process.MINIAODSIMoutput_step,process.DQMoutput_step)
+process.schedule = cms.Schedule(process.raw2digi_step,process.L1Reco_step,process.reconstruction_step,process.recosim_step,process.eventinterpretaion_step,process.Flag_HBHENoiseFilter,process.Flag_HBHENoiseIsoFilter,process.Flag_CSCTightHaloFilter,process.Flag_CSCTightHaloTrkMuUnvetoFilter,process.Flag_CSCTightHalo2015Filter,process.Flag_globalTightHalo2016Filter,process.Flag_globalSuperTightHalo2016Filter,process.Flag_HcalStripHaloFilter,process.Flag_hcalLaserEventFilter,process.Flag_EcalDeadCellTriggerPrimitiveFilter,process.Flag_EcalDeadCellBoundaryEnergyFilter,process.Flag_ecalBadCalibFilter,process.Flag_goodVertices,process.Flag_eeBadScFilter,process.Flag_ecalLaserCorrFilter,process.Flag_trkPOGFilters,process.Flag_chargedHadronTrackResolutionFilter,process.Flag_muonBadTrackFilter,process.Flag_BadChargedCandidateFilter,process.Flag_BadPFMuonFilter,process.Flag_BadChargedCandidateSummer16Filter,process.Flag_BadPFMuonSummer16Filter,process.Flag_trkPOG_manystripclus53X,process.Flag_trkPOG_toomanystripclus53X,process.Flag_trkPOG_logErrorTooManyClusters,process.Flag_METFilters,process.prevalidation_step,process.prevalidation_step1,process.validation_step,process.validation_step1,process.dqmoffline_step,process.dqmoffline_1_step,process.dqmoffline_2_step,process.dqmofflineOnPAT_step,process.dqmofflineOnPAT_1_step,process.dqmofflineOnPAT_2_step,process.RECOSIMoutput_step,process.MINIAODSIMoutput_step,process.DQMoutput_step)
 process.schedule.associate(process.patTask)
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
 
 #Setup FWK for multithreaded
-process.options.numberOfThreads = 8
-process.options.numberOfStreams = 0
-process.options.numberOfConcurrentLuminosityBlocks = 2
-process.options.eventSetup.numberOfConcurrentIOVs = 1
-if hasattr(process, 'DQMStore'): process.DQMStore.assertLegacySafe=cms.untracked.bool(False)
+process.options.numberOfThreads=cms.untracked.uint32(16)
+process.options.numberOfStreams=cms.untracked.uint32(0)
+process.options.numberOfConcurrentLuminosityBlocks=cms.untracked.uint32(1)
 
 # customisation of the process.
-
-# Automatic addition of the customisation function from SLHCUpgradeSimulations.Configuration.aging
-from SLHCUpgradeSimulations.Configuration.aging import customise_aging_1000 
-
-#call to customisation function customise_aging_1000 imported from SLHCUpgradeSimulations.Configuration.aging
-process = customise_aging_1000(process)
 
 # Automatic addition of the customisation function from SimGeneral.MixingModule.fullMixCustomize_cff
 from SimGeneral.MixingModule.fullMixCustomize_cff import setCrossingFrameOn 
@@ -292,6 +262,9 @@ from SimGeneral.MixingModule.fullMixCustomize_cff import setCrossingFrameOn
 process = setCrossingFrameOn(process)
 
 # End of customisation functions
+#do not add changes to your config after this point (unless you know what you are doing)
+from FWCore.ParameterSet.Utilities import convertToUnscheduled
+process=convertToUnscheduled(process)
 
 # customisation of the process.
 

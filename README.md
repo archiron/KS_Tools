@@ -6,7 +6,7 @@ installing tools with : . installKSTools.sh (WARNING no / between the . and inst
 ### Generation of the ROOT files
 When you have downloaded the config (python) files from https://cmsweb.cern.ch/reqmgr2/ site,
 you save them into step1,.py, step2.py and so on.
-for each file you need to include the part 1 [0] between the line "from configuration ..." and the line
+for each file you need to include the part 1 [1] between the line "from configuration ..." and the line
 "process = cms.Process(...".
 in most of the files you need to replace :  
 process.options.numberOfThreads = 1  
@@ -19,22 +19,24 @@ into the last step file.
 Into most of the files, it is recommended to include :  
 fileName = cms.untracked.string('file:step3_inDQM_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),  
 into the process.DQMoutput part.  
-Be careful, sometimes it is difficult on the POLUI computers.  
+Be careful, sometimes it can be difficult on the POLUI computers.  
 
 #### cca.in2p3.fr
 #### polui.in2p3.fr
 
 ### Extraction of the files
 you need to load 2 files more :
-the 2 files for the current validation [1] and put them into the DATA folder.  
+the 2 files for the current validation [2] and put them into the DATA folder.  
 launch the extraction with : python zeeExtract_1curve.py  
 ####WARNING : still need of cmsenv!  
 
 ####Some point to modify into the zeeExtract_1curve.py file :
-the folderName where are located the generated ROOT files,
-the folder where the created files were located (into the func_CreateKS() function).
+the folder "named folderName" where are located the generated ROOT files, and the folder "named folder" where the created files 
+(into the func_CreateKS() function) are given into the default.py file.
+Also is given the path for the histos into the ROOT files.  
+So there is no need to modify the zeeExtract_1curve.py file.
 
-[0] : part 1  
+[1] : part 1  
 if len(sys.argv) > 1:  
     print "step 1 - arg. 0 :", sys.argv[0]  
     print "step 1 - arg. 1 :", sys.argv[1]  
@@ -52,4 +54,4 @@ else:
 
 
 
-[1] : usually into the form : DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre6-113X_mcRunxxxxxxxx-v1__DQMIO.root
+[2] : usually into the form : DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre6-113X_mcRunxxxxxxxx-v1__DQMIO.root

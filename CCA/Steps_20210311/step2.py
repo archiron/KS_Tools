@@ -2,11 +2,11 @@
 # using: 
 # Revision: 1.19 
 # Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
-# with command line options: step2 --conditions auto:phase2_realistic_T21 --customise SLHCUpgradeSimulations/Configuration/aging.customise_aging_1000 --datatier GEN-SIM-DIGI-RAW --era Phase2C11M9 --eventcontent FEVTDEBUGHLT --filein file:_placeholder_.root --fileout file:step2.root --geometry Extended2026D76 --nThreads 8 --no_exec --number 10 --python_filename step_2_cfg.py --step DIGI:pdigi_valid,L1TrackTrigger,L1,DIGI2RAW,HLT:@fake2
+# with command line options: ZEE_13TeV_TuneCUETP8M1_cfi --conditions auto:run2_mc -n 9000 --era Run2_2016 --eventcontent FEVTDEBUG,FEVTDEBUGHLT --relval 9000,50 -s GEN,SIM,DIGI:pdigi_valid,L1,DIGI2RAW,HLT:@relval2016 --datatier GEN-SIM,GEN-SIM-DIGI-RAW-HLTDEBUG --beamspot Realistic50ns13TeVCollision --io ZEE_13.io --python ZEE_13.py --conditions=110X_mcRun2_asymptotic_v5 --fileout file:step2.root --nThreads 8
 import FWCore.ParameterSet.Config as cms
 import os, sys
 
-from Configuration.Eras.Era_Phase2C11M9_cff import Phase2C11M9
+from Configuration.Eras.Era_Run2_2016_cff import Run2_2016
 
 if len(sys.argv) > 1:
     print "step 1 - arg. 0 :", sys.argv[0]
@@ -23,7 +23,7 @@ else:
     path = ''
     max_number = 10 # number of events
 
-process = cms.Process('HLT',Phase2C11M9)
+process = cms.Process('HLT',Run2_2016)
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -31,10 +31,14 @@ process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
-process.load('Configuration.Geometry.GeometryExtended2026D76Reco_cff')
+process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
+process.load('Configuration.Geometry.GeometrySimDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
+process.load('Configuration.StandardSequences.Generator_cff')
+process.load('IOMC.EventVertexGenerators.VtxSmearedRealistic50ns13TeVCollision_cfi')
+process.load('GeneratorInterface.Core.genFilterSummary_cff')
+process.load('Configuration.StandardSequences.SimIdeal_cff')
 process.load('Configuration.StandardSequences.Digi_cff')
-process.load('Configuration.StandardSequences.L1TrackTrigger_cff')
 process.load('Configuration.StandardSequences.SimL1Emulator_cff')
 process.load('Configuration.StandardSequences.DigiToRaw_cff')
 process.load('HLTrigger.Configuration.HLT_Fake2_cff')
@@ -47,30 +51,7 @@ process.maxEvents = cms.untracked.PSet(
 )
 
 # Input source
-process.source = cms.Source("PoolSource",
-    dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
-    fileNames = cms.untracked.vstring('file:_placeholder_.root'),
-    inputCommands = cms.untracked.vstring(
-        'keep *', 
-        'drop *_genParticles_*_*', 
-        'drop *_genParticlesForJets_*_*', 
-        'drop *_kt4GenJets_*_*', 
-        'drop *_kt6GenJets_*_*', 
-        'drop *_iterativeCone5GenJets_*_*', 
-        'drop *_ak4GenJets_*_*', 
-        'drop *_ak7GenJets_*_*', 
-        'drop *_ak8GenJets_*_*', 
-        'drop *_ak4GenJetsNoNu_*_*', 
-        'drop *_ak8GenJetsNoNu_*_*', 
-        'drop *_genCandidatesForMET_*_*', 
-        'drop *_genParticlesForMETAllVisible_*_*', 
-        'drop *_genMetCalo_*_*', 
-        'drop *_genMetCaloAndNonPrompt_*_*', 
-        'drop *_genMetTrue_*_*', 
-        'drop *_genMetIC5GenJs_*_*'
-    ),
-    secondaryFileNames = cms.untracked.vstring()
-)
+process.source = cms.Source("EmptySource")
 
 process.options = cms.untracked.PSet(
     FailPath = cms.untracked.vstring(),
@@ -79,11 +60,10 @@ process.options = cms.untracked.PSet(
     SkipEvent = cms.untracked.vstring(),
     allowUnscheduled = cms.obsolete.untracked.bool,
     canDeleteEarly = cms.untracked.vstring(),
-    deleteNonConsumedUnscheduledModules = cms.untracked.bool(True),
     emptyRunLumiMode = cms.obsolete.untracked.string,
     eventSetup = cms.untracked.PSet(
         forceNumberOfConcurrentIOVs = cms.untracked.PSet(
-            allowAnyLabel_=cms.required.untracked.uint32
+
         ),
         numberOfConcurrentIOVs = cms.untracked.uint32(1)
     ),
@@ -102,20 +82,37 @@ process.options = cms.untracked.PSet(
 
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
-    annotation = cms.untracked.string('step2 nevts:10'),
+    annotation = cms.untracked.string('ZEE_13TeV_TuneCUETP8M1_cfi nevts:9000'),
     name = cms.untracked.string('Applications'),
     version = cms.untracked.string('$Revision: 1.19 $')
 )
 
 # Output definition
 
-process.FEVTDEBUGHLToutput = cms.OutputModule("PoolOutputModule",
+process.FEVTDEBUGoutput = cms.OutputModule("PoolOutputModule",
+    SelectEvents = cms.untracked.PSet(
+        SelectEvents = cms.vstring('generation_step')
+    ),
     dataset = cms.untracked.PSet(
-        dataTier = cms.untracked.string('GEN-SIM-DIGI-RAW'),
+        dataTier = cms.untracked.string('GEN-SIM'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:step2.root'),
-    #fileName = cms.untracked.string('file:step2_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    fileName = cms.untracked.string('file:step2_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    #fileName = cms.untracked.string('file:' + path + '/step2_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    outputCommands = process.FEVTDEBUGEventContent.outputCommands,
+    splitLevel = cms.untracked.int32(0)
+)
+
+process.FEVTDEBUGHLToutput = cms.OutputModule("PoolOutputModule",
+    SelectEvents = cms.untracked.PSet(
+        SelectEvents = cms.vstring('generation_step')
+    ),
+    dataset = cms.untracked.PSet(
+        dataTier = cms.untracked.string('GEN-SIM-DIGI-RAW-HLTDEBUG'),
+        filterName = cms.untracked.string('')
+    ),
+    fileName = cms.untracked.string('file:step2_inFEVTDEBUGHLT_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
+    #fileName = cms.untracked.string('file:' + path + '/step2_inFEVTDEBUGHLT_' + '%0004d'%max_number + '_' + '%003d'%ind + '.root'),
     outputCommands = process.FEVTDEBUGHLTEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
@@ -123,39 +120,78 @@ process.FEVTDEBUGHLToutput = cms.OutputModule("PoolOutputModule",
 # Additional output definition
 
 # Other statements
+process.genstepfilter.triggerConditions=cms.vstring("generation_step")
 process.mix.digitizers = cms.PSet(process.theDigitizersValid)
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T21', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, '110X_mcRun2_asymptotic_v5', '')
+
+process.generator = cms.EDFilter("Pythia8GeneratorFilter",
+    PythiaParameters = cms.PSet(
+        parameterSets = cms.vstring(
+            'pythia8CommonSettings', 
+            'pythia8CUEP8M1Settings', 
+            'processParameters'
+        ),
+        processParameters = cms.vstring(
+            'WeakSingleBoson:ffbar2gmZ = on', 
+            '23:onMode = off', 
+            '23:onIfAny = 11', 
+            'PhaseSpace:mHatMin = 75.'
+        ),
+        pythia8CUEP8M1Settings = cms.vstring(
+            'Tune:pp 14', 
+            'Tune:ee 7', 
+            'MultipartonInteractions:pT0Ref=2.4024', 
+            'MultipartonInteractions:ecmPow=0.25208', 
+            'MultipartonInteractions:expPow=1.6'
+        ),
+        pythia8CommonSettings = cms.vstring(
+            'Tune:preferLHAPDF = 2', 
+            'Main:timesAllowErrors = 10000', 
+            'Check:epTolErr = 0.01', 
+            'Beams:setProductionScalesFromLHEF = off', 
+            'SLHA:keepSM = on', 
+            'SLHA:minMassSM = 1000.', 
+            'ParticleDecays:limitTau0 = on', 
+            'ParticleDecays:tau0Max = 10', 
+            'ParticleDecays:allowPhotonRadiation = on'
+        )
+    ),
+    comEnergy = cms.double(13000.0),
+    filterEfficiency = cms.untracked.double(1.0),
+    maxEventsToPrint = cms.untracked.int32(0),
+    pythiaHepMCVerbosity = cms.untracked.bool(False),
+    pythiaPylistVerbosity = cms.untracked.int32(0)
+)
+
 
 # Path and EndPath definitions
+process.generation_step = cms.Path(process.pgen)
+process.simulation_step = cms.Path(process.psim)
 process.digitisation_step = cms.Path(process.pdigi_valid)
-process.L1TrackTrigger_step = cms.Path(process.L1TrackTrigger)
 process.L1simulation_step = cms.Path(process.SimL1Emulator)
 process.digi2raw_step = cms.Path(process.DigiToRaw)
+process.genfiltersummary_step = cms.EndPath(process.genFilterSummary)
 process.endjob_step = cms.EndPath(process.endOfProcess)
+process.FEVTDEBUGoutput_step = cms.EndPath(process.FEVTDEBUGoutput)
 process.FEVTDEBUGHLToutput_step = cms.EndPath(process.FEVTDEBUGHLToutput)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.digitisation_step,process.L1TrackTrigger_step,process.L1simulation_step,process.digi2raw_step)
+process.schedule = cms.Schedule(process.generation_step,process.genfiltersummary_step,process.simulation_step,process.digitisation_step,process.L1simulation_step,process.digi2raw_step)
 process.schedule.extend(process.HLTSchedule)
-process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])
+process.schedule.extend([process.endjob_step,process.FEVTDEBUGoutput_step,process.FEVTDEBUGHLToutput_step])
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
 
 #Setup FWK for multithreaded
-process.options.numberOfThreads = 8
-process.options.numberOfStreams = 0
-process.options.numberOfConcurrentLuminosityBlocks = 2
-process.options.eventSetup.numberOfConcurrentIOVs = 1
-if hasattr(process, 'DQMStore'): process.DQMStore.assertLegacySafe=cms.untracked.bool(False)
+process.options.numberOfThreads=cms.untracked.uint32(16)
+process.options.numberOfStreams=cms.untracked.uint32(0)
+process.options.numberOfConcurrentLuminosityBlocks=cms.untracked.uint32(1)
+# filter all path with the production filter sequence
+for path in process.paths:
+	getattr(process,path).insert(0, process.generator)
 
 # customisation of the process.
-
-# Automatic addition of the customisation function from SLHCUpgradeSimulations.Configuration.aging
-from SLHCUpgradeSimulations.Configuration.aging import customise_aging_1000 
-
-#call to customisation function customise_aging_1000 imported from SLHCUpgradeSimulations.Configuration.aging
-process = customise_aging_1000(process)
 
 # Automatic addition of the customisation function from HLTrigger.Configuration.customizeHLTforMC
 from HLTrigger.Configuration.customizeHLTforMC import customizeHLTforMC 
@@ -164,7 +200,6 @@ from HLTrigger.Configuration.customizeHLTforMC import customizeHLTforMC
 process = customizeHLTforMC(process)
 
 # End of customisation functions
-
 
 # Customisation from command line
 

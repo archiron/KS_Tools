@@ -3,15 +3,14 @@
 
 # MUST be launched with the cmsenv cmd after a cmsrel cmd !!
 
-import os,sys,subprocess
-import urllib2
-import re
+import os,sys
+import time
 
 import pandas as pd
 import numpy as np
 import matplotlib
 
-import matplotlib.dates as md
+# import matplotlib.dates as md
 matplotlib.use('agg')
 from matplotlib import pyplot as plt
 
@@ -36,11 +35,10 @@ ROOT.FWLiteEnabler.enable()
 sys.path.append('../ChiLib_CMS_Validation')
 from graphicFunctions import getHisto
 from default import *
+from DecisionBox import DecisionBox
 
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
-
-from DataFormats.FWLite import Handle, Events
 
 def getListFiles(path):
     #print('path : %s' % path)
@@ -61,63 +59,17 @@ def getBranches(t_p):
     source.close()
     return b
 
-def diffMAXKS(s0,s1, sum0, sum1):
+def diffR2(s0,s1):
     s0 = np.asarray(s0) # if not this, ind is returned as b_00x instead of int value
     s1 = np.asarray(s1)
+    #print('s0[%d] - s1[%d]' %(len(s0), len(s1)))
     N = len(s0)
-    #print('diffMAXKS : %d' % N)
-    v0 = 0.
-    v1 = 0.
-    sDKS = []
+    #print('diffR2 : %d' % N)
+    R0 = 0.
     for i in range(0, N):
-        t0 = s0[i]/sum0 
-        t1 = s1[i]/sum1 
-        v0 += t0
-        v1 += t1
-        sDKS.append(np.abs(v1 - v0))
-    v = max(sDKS)
-    ind = sDKS.index(v)
-    return v, ind, sDKS
-
-def integralpValue(abscisses, ordonnees, x):
-    #print(abscisses)
-    #print(ordonnees)
-    v = 0.0
-    N = len(abscisses)
-    #print('== ', x)
-    if (x <= abscisses[0]) :
-        x = 0. #ttl integral
-        for i in range(0, N-1):
-            v += (abscisses[i+1] - abscisses[i]) * ordonnees[i]
-            #print(v)
-    elif (x >= abscisses[N-1]):
-        v = 0. # null integral
-    else: # general case
-        ind = 0
-        for i in range(0, N):
-            if (np.floor(x/abscisses[i]) == 0):
-                ind = i                
-                break
-        #print('ind : %d' % ind)    
-        v = (abscisses[ind] - x) * ordonnees[ind-1]
-        for i in range(ind, N-1):
-            v += (abscisses[i+1] - abscisses[i]) * ordonnees[i]
-    return v
-
-# create a Kolmogorov-Smirnov curve (integrated curve) with s0
-def funcKS(s0):
-    s0 = np.asarray(s0) # if not this, ind is returned as b_00x instead of int value
-    #print(s0)
-    N = len(s0)
-    SumSeries0 = np.floor(s0.sum())
-    #SumSeries0 = s0.sum()
-    v0 = 0.
-    sDKS = []
-    for i in range(0, N):
-        t0 = s0[i]/SumSeries0
-        v0 += t0
-        sDKS.append(np.abs(v0))
-    return sDKS
+        t0 = s0[i]- s1[i]
+        R0 += t0 * t0
+    return R0/N
 
 def func_Extract(br, nbFiles): # read files
     print("func_Extract")
@@ -136,15 +88,16 @@ def func_Extract(br, nbFiles): # read files
     
     fileList = getListFiles(folderName) # get the list of the root files in the folderName folder
     fileList.sort()
-    #nbFiles = 10 # nb of files to be used
+    print('there is %d files' % len(fileList))
     fileList = fileList[0:nbFiles]
+    print('file list :')
     print(fileList)
+    print('-- end --')
 
     for elem in fileList:
         input_file = folderName + str(elem.split()[0])
-        print('\n' + input_file)
         name_1 = input_file.replace(folderName, '').replace('DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_', '').replace('.root', '')
-        print ("name_1 : %s" % name_1)
+        print('\n %s - name_1 : %s' % (input_file, name_1))
         
         f_root = ROOT.TFile(input_file) # 'DATA/' + 
         h1 = getHisto(f_root, tp_1)
@@ -153,7 +106,6 @@ def func_Extract(br, nbFiles): # read files
             print("== %s ==" % leaf)
             temp_leaf = []
             histo = h1.Get(leaf)
-            #histo_nb_x = histo.GetXaxis().GetNbins()+1 # not used
 
             temp_leaf.append(histo.GetMean()) # 0
             temp_leaf.append(histo.GetMeanError()) # 2
@@ -161,15 +113,17 @@ def func_Extract(br, nbFiles): # read files
             temp_leaf.append(histo.GetEntries()) # 6b
 
             temp_leaf.append(name_1) # 7
+            #print('temp_leaf : %s' % temp_leaf)
             
             texttoWrite = ''
             i=0
             for entry in histo:
-                #print("%d/%d : %s - %s - %s") % (i, histo_nb_x, histo.GetXaxis().GetBinCenter(i), entry, histo.GetBinError(i))
+                #print(i,entry)
                 texttoWrite += 'b_' + '{:03d}'.format(i) + ',c_' + '{:03d},'.format(i)
                 temp_leaf.append(entry) # b_
                 temp_leaf.append(histo.GetBinError(i)) # c_
                 i+=1
+            print('there is %d entries' % i)
             texttoWrite = texttoWrite[:-1] # remove last char
             temp_leaf.append(texttoWrite) # end
             histos[leaf].append(temp_leaf)
@@ -179,7 +133,7 @@ def func_Extract(br, nbFiles): # read files
     for leaf in branches:
         wr.append(open(folderName + 'histo_' + str(leaf) + '_' + '{:03d}'.format(nbFiles) + '_0_lite.txt', 'w'))
         nb_max = len(histos[leaf][0]) - 1
-        print("nb_max : %d" % nb_max)
+        print("== %s == nb_max : %d" % (leaf, nb_max))
         wr[i_leaf].write('evol,Mean,MeanError,StdDev,nbBins,name,')
         wr[i_leaf].write(str(histos[leaf][0][nb_max]))
         wr[i_leaf].write('\n')
@@ -200,6 +154,7 @@ def func_Extract(br, nbFiles): # read files
     return
 
 def func_CreateKS(br, nbFiles):
+    DB = DecisionBox()
     print("func_Extract")
     
     branches = br
@@ -222,19 +177,31 @@ def func_CreateKS(br, nbFiles):
 
     # get the "new" root file datas
     #input_rel_file = 'DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_new.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_2_0-112X_mcRun3_2021_realistic_v13-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre2-113X_mcRun3_2021_realistic_v2_rsb-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre3-113X_mcRun3_2021_realistic_v4-v1__DQMIO.root'
-    input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre6-113X_mcRun3_2021_realistic_v9-v1__DQMIO.root'
+    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
+    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre1-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
+    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre2-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
+    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre3-120X_mcRun3_2021_realistic_v1-v1__DQMIO.root'
+    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre6-120X_mcRun3_2021_realistic_v4-v1__DQMIO.root'
+    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v15-v1__DQMIO.root'
+    input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_2_0_pre3-122X_mcRun3_2021_realistic_v5-v1__DQMIO.root'
     #input_rel_file = 'DATA/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_056.root'
     f_rel = ROOT.TFile(input_rel_file)
 
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_2_0_pre11-112X_mcRun3_2021_realistic_v13-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre1-113X_mcRun3_2021_realistic_v1-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre2-113X_mcRun3_2021_realistic_v2_rsb-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre4-113X_mcRun3_2021_realistic_v4-v1__DQMIO.root'
-    input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre5-113X_mcRun3_2021_realistic_v7-v1__DQMIO.root'
+    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre5-113X_mcRun3_2021_realistic_v7-v1__DQMIO.root'
+    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre6-113X_mcRun3_2021_realistic_v9-v1__DQMIO.root'
+    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre1-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
+    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre2-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
+    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre4-120X_mcRun3_2021_realistic_v2-v1__DQMIO.root'
+    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre4-121X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
+    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v15-v1__DQMIO.root'
+    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v9000-v214__DQMIO.root'
+    input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_2_0_pre2-122X_mcRun3_2021_realistic_v1-v2__DQMIO.root'
     #input_ref_file = 'DATA/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_017.root'
+    #ind_ref_file = 214 # np.random.randint(0, nbFiles)
+    #input_ref_file = folderName + '/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_' + '{:03d}'.format(ind_ref_file) + '.root'
+    #print('we use the %d file as reference' % ind_ref_file)
+    #print('we use : %s file as reference' % input_ref_file)
+
     f_ref = ROOT.TFile(input_ref_file)
 
     nb_red1 = 0
@@ -244,9 +211,24 @@ def func_CreateKS(br, nbFiles):
     nb_red3 = 0
     nb_green3 = 0
 
+    KS_diffName = folder + "histo_differences_KScurve.txt"
+    print("KSname 1 : %s" % KS_diffName)
+    wKS0 = open(KS_diffName, 'w')
+
+    KS_resume = folder + "histo_resume.txt"
+    print("KSname 0 : %s" % KS_resume)
+    wKS_ = open(KS_resume, 'w')
+
+    ind_reference = 199 # np.random.randint(0, nbFiles)
+    print('reference ind. : %d' % ind_reference)
+
+    tic = time.time()
+
     for i in range(0, N_histos): # 1 histo for debug
         if (branches[i] == 'h_ele_seedMask_Tec'): # temp (pbm with nan)
             i += 1
+        #if re.search('OfflineV', branches[i]): # temp (pbm with nbins=81 vs nbins=80)
+        #    continue # i += 1
         name = folderName + "histo_" + branches[i] + '_{:03d}'.format(nbFiles) + "_0_lite.txt"
         print('\n%d - %s' %(i, name))
         df = pd.read_csv(name)
@@ -305,17 +287,14 @@ def func_CreateKS(br, nbFiles):
             continue
 
         # create file for KS curve
-        #KSname1 = folder + "histo_" + branches[i] + '_{:03d}'.format(nbFiles) + "_KScurve1.txt"
         KSname1 = folder + "histo_" + branches[i] + "_KScurve1.txt"
-        print("KSname 1 : %s" % KSname1)
-        wKS1 = open(KSname1, 'w')
-        #KSname2 = folder + "histo_" + branches[i] + '_{:03d}'.format(nbFiles) + "_KScurve2.txt"
         KSname2 = folder + "histo_" + branches[i] + "_KScurve2.txt"
-        print("KSname 2 : %s" % KSname2)
-        wKS2 = open(KSname2, 'w')
-        #KSname3 = folder + "histo_" + branches[i] + '_{:03d}'.format(nbFiles) + "_KScurve3.txt"
         KSname3 = folder + "histo_" + branches[i] + "_KScurve3.txt"
+        print("KSname 1 : %s" % KSname1)
+        print("KSname 2 : %s" % KSname2)
         print("KSname 3 : %s" % KSname3)
+        wKS1 = open(KSname1, 'w')
+        wKS2 = open(KSname2, 'w')
         wKS3 = open(KSname3, 'w')
 
         # check the values & errors data
@@ -326,10 +305,10 @@ def func_CreateKS(br, nbFiles):
         cols_entries = cols[6::2]
         df_entries = df[cols_entries]
         #print(df_entries.head(15))#
+        #stop
 
         # nbBins (GetEntries())
         df_GetEntries = df['nbBins']
-        #print(df_GetEntries.head(15))
 
        # get nb of columns & rows for histos
         (Nrows, Ncols) = df_entries.shape
@@ -349,15 +328,15 @@ def func_CreateKS(br, nbFiles):
                 series1 = df_entries.iloc[l,:]     
                 sum0 = df_GetEntries[k]
                 sum1 = df_GetEntries[l]
-                totalDiff.append(diffMAXKS(series0, series1, sum0, sum1)[0]) # 9000, 9000
+                totalDiff.append(DB.diffMAXKS(series0, series1, sum0, sum1)[0]) # 9000, 9000
 
-        print('ttl nb1 of couples : %d' % nb1)
+        print('ttl nb1 of couples 1 : %d' % nb1)
 
         # create the datas for the p-Value graph
         # by comparing 1 curve with the others.
         # Get a random histo as reference (KS 2)
-        ind_reference = np.random.randint(0, Nrows)
-        print('reference ind. : %d' % ind_reference)
+            #ind_reference = np.random.randint(0, Nrows)
+            #print('reference ind. : %d' % ind_reference)
         series_reference = df_entries.iloc[ind_reference,:]
         nbBins_reference = df_GetEntries[ind_reference]
         print('nb bins reference : %d' % nbBins_reference)
@@ -369,9 +348,9 @@ def func_CreateKS(br, nbFiles):
                 nb2 += 1
                 series0 = df_entries.iloc[k,:]
                 sum0 = df_GetEntries[k]
-                totalDiff2.append(diffMAXKS(series0, series_reference, sum0, nbBins_reference)[0]) # 9000, 9000
+                totalDiff2.append(DB.diffMAXKS(series0, series_reference, sum0, nbBins_reference)[0]) # 9000, 9000
 
-        print('ttl nb of couples : %d' % nb2)
+        print('ttl nb of couples 2 : %d' % nb2)
         #stop
     
         # create the datas for the p-Value graph
@@ -385,9 +364,9 @@ def func_CreateKS(br, nbFiles):
             nb3 += 1
             series0 = df_entries.iloc[k,:]
             sum0 = df_GetEntries[k]
-            totalDiff3.append(diffMAXKS(series0, s_new, sum0, Ntot_h1)[0])
+            totalDiff3.append(DB.diffMAXKS(series0, s_new, sum0, Ntot_h1)[0])
 
-        print('ttl nb of couples : %d' % nb3)
+        print('ttl nb of couples 3 : %d' % nb3)
     
         # plot some datas (in fact doing nothing but creating fig)
         plt_entries = df_entries.plot(kind='line')
@@ -397,9 +376,8 @@ def func_CreateKS(br, nbFiles):
         curves = []
         for k in range(0,Nrows):
             series0 = df_entries.iloc[k,:]
-            curves = funcKS(series0)
+            curves = DB.funcKS(series0)
             plt.plot(curves)
-        #fig.savefig(folder + '/cumulative_curve_' + branches[i] + '_{:03d}'.format(nbFiles) + '.png')
         fig.savefig(folder + '/cumulative_curve_' + branches[i] + '.png')
         fig.clf()
     
@@ -408,18 +386,19 @@ def func_CreateKS(br, nbFiles):
         # ================================ #
         mean_df_entries = df_entries.mean()
         mean_sum = mean_df_entries.sum()
-        #mean_df_errors = df_errors.mean()
-        diffMax1, posMax1, sDKS = diffMAXKS(mean_df_entries, s_new, mean_sum, Ntot_h1)
-        diffMax2, posMax2, sDKS = diffMAXKS(series_reference, s_new, nbBins_reference, Ntot_h1)
-        diffMax3, posMax3, sDKS = diffMAXKS(s_new, s_old, Ntot_h1, Ntot_h2)
+        
+        diffMax1, posMax1 = DB.diffMAXKS(mean_df_entries, s_new, mean_sum, Ntot_h1)
+        diffMax2, posMax2 = DB.diffMAXKS(series_reference, s_new, nbBins_reference, Ntot_h1)
+        diffMax3, posMax3 = DB.diffMAXKS(s_new, s_old, Ntot_h1, Ntot_h2)
         print("diffMax1 : %f - posMax1 : %f" % (diffMax1, posMax1))
         print("diffMax2 : %f - posMax2 : %f" % (diffMax2, posMax2))
         print("diffMax3 : %f - posMax3 : %f" % (diffMax3, posMax3))
         print('Ntot_h1 : %d - Ntot_h2 : %d' % (Ntot_h1, Ntot_h2))
 
         # diff max between new & old
-        diffMax0, posMax0, sDKS = diffMAXKS(s_old, s_new, Ntot_h2, Ntot_h1)
+        diffMax0, posMax0, sDKS = DB.diffMAXKS2(s_old, s_new, Ntot_h2, Ntot_h1)
         print("diffMax0 : %f - posMax0 : %f" % (diffMax0, posMax0))
+        wKS0.write('%s : %e\n' % (branches[i], diffMax0))
         print(s_new[0:8])
         print(s_old[0:8])
         print(sDKS[0:8]) # diff
@@ -427,13 +406,17 @@ def func_CreateKS(br, nbFiles):
         yellowCurve1 = mean_df_entries
         yellowCurve2 = series_reference
         yellowCurve3 = s_new
-        yellowCurveCum1 = funcKS(mean_df_entries) #  cumulative yellow curve
-        yellowCurveCum2 = funcKS(series_reference)
-        yellowCurveCum3 = funcKS(s_new)
+        yellowCurveCum1 = DB.funcKS(mean_df_entries) #  cumulative yellow curve
+        yellowCurveCum2 = DB.funcKS(series_reference)
+        yellowCurveCum3 = DB.funcKS(s_new)
 
         # Kolmogoroff-Smirnov curve
         seriesTotalDiff = pd.DataFrame(totalDiff, columns=['KSDiff'])
+        KSDiffname1 = folder + '/KSDiffValues_1_' + branches[i] + '.csv'
+        df.to_csv(KSDiffname1)
         plt_diff_KS1 = seriesTotalDiff.plot.hist(bins=nbins, title='KS diff.')
+        print('\ndiffMin0/sTD.min 1 : %f/%f' % (diffMax0, seriesTotalDiff.values.min()))
+        print('\ndiffMax0/sTD.max 1 : %f/%f' % (diffMax0, seriesTotalDiff.values.max()))
         if (diffMax0 >= seriesTotalDiff.values.max()):
             color1 = 'r'
             nb_red1 += 1
@@ -446,19 +429,25 @@ def func_CreateKS(br, nbFiles):
             color1 = 'g'
             nb_green1 += 1
             x1 = diffMax0
+        print('x1 : %f' % x1)
         ymi, yMa = plt_diff_KS1.get_ylim()
         plt_diff_KS1.vlines(x1, ymi, 0.9*yMa, color=color1, linewidth=4)
         fig = plt_diff_KS1.get_figure()
-        #fig.savefig(folder + '/KS-ttlDiff_1_' + branches[i] + '_{:03d}'.format(nbFiles) + '.png')
         fig.savefig(folder + '/KS-ttlDiff_1_' + branches[i] + '.png')
         fig.clf()
-        #count, division = np.histogram(seriesTotalDiff, bins=nbins)
         count, division = np.histogram(seriesTotalDiff[~np.isnan(seriesTotalDiff)], bins=nbins)
         div_min = np.amin(division)
         div_max = np.amax(division)
+        KSDiffHistoname1 = folder + '/KSDiffHistoValues_1_' + branches[i] + '.csv'
+        wKSDiff1 = open(KSDiffHistoname1, 'w')
+        wKSDiff1.write(' '.join("{:10.04e}".format(x) for x in count))
+        wKSDiff1.write('\n')
+        wKSDiff1.write(' '.join("{:10.04e}".format(x) for x in division))
+        wKSDiff1.write('\n')
+        wKSDiff1.close()
 
         # Get the max of the integral
-        I_max = integralpValue(division, count, 0.)
+        I_max = DB.integralpValue(division, count, 0.)
         print('\nMax. integral : %0.4e for nbins=%d' % (I_max, nbins))
         # print the min/max values of differences
         print('Kolmogoroff-Smirnov min value : %0.4e - max value : %0.4e | diff value : %e \n' % (div_min, div_max, x1))
@@ -479,6 +468,8 @@ def func_CreateKS(br, nbFiles):
         # Kolmogoroff-Smirnov curve 2
         seriesTotalDiff2 = pd.DataFrame(totalDiff2, columns=['KSDiff'])
         plt_diff_KS2 = seriesTotalDiff2.plot.hist(bins=nbins, title='KS diff. 2')
+        print('\ndiffMin0/sTD.min 1 : %f/%f' % (diffMax0, seriesTotalDiff2.values.min()))
+        print('\ndiffMax0/sTD.max 2 : %f/%f' % (diffMax0, seriesTotalDiff2.values.max()))
         if (diffMax0 >= seriesTotalDiff2.values.max()):
             color2 = 'r'
             nb_red2 += 1
@@ -491,22 +482,28 @@ def func_CreateKS(br, nbFiles):
             color2 = 'g'
             nb_green2 += 1
             x2 = diffMax0
+        print('x2 : %f' % x2)
         ymi, yMa = plt_diff_KS2.get_ylim()
         plt_diff_KS2.vlines(x2, ymi, 0.9*yMa, color=color2, linewidth=4)
         fig = plt_diff_KS2.get_figure()
-        #fig.savefig(folder + '/KS-ttlDiff_2_' + branches[i] + '_{:03d}'.format(nbFiles) + '.png')
         fig.savefig(folder + '/KS-ttlDiff_2_' + branches[i] + '.png')
         fig.clf()
         count, division = np.histogram(seriesTotalDiff2, bins=nbins)
         div_min = np.amin(division)
         div_max = np.amax(division)
+        KSDiffHistoname2 = folder + '/KSDiffHistoValues_2_' + branches[i] + '.csv'
+        wKSDiff2 = open(KSDiffHistoname2, 'w')
+        wKSDiff2.write(' '.join("{:10.04e}".format(x) for x in count))
+        wKSDiff2.write('\n')
+        wKSDiff2.write(' '.join("{:10.04e}".format(x) for x in division))
+        wKSDiff2.write('\n')
+        wKSDiff2.close()
     
         # Get the max of the integral
-        I_max = integralpValue(division, count, 0.)
+        I_max = DB.integralpValue(division, count, 0.)
         print('\nMax. integral : %0.4e for nbins=%d' % (I_max, nbins))
         # print the min/max values of differences
         print('Kolmogoroff-Smirnov min value : %0.4e - max value : %0.4e | diff value : %e \n' % (div_min, div_max, x2))
-        #stop
         # save the KS curves
         wKS2.write('%e, %d\n' % (I_max, nbins))
         wKS2.write('%e, %e\n' % (div_min, div_max))
@@ -523,10 +520,12 @@ def func_CreateKS(br, nbFiles):
         # Kolmogoroff-Smirnov curve 3
         seriesTotalDiff3 = pd.DataFrame(totalDiff3, columns=['new'])
         plt_diff_KS3 = seriesTotalDiff3.plot.hist(bins=nbins, title='KS diff. 3')
+        print('\ndiffMin0/sTD.min 3 : %f/%f' % (diffMax0, seriesTotalDiff3.values.min()))
+        print('\ndiffMax0/sTD.max 3 : %f/%f' % (diffMax0, seriesTotalDiff3.values.max()))
         if (diffMax0 >= seriesTotalDiff3.values.max()):
             color3 = 'r'
             nb_red3 += 1
-            x3 = 0.95 * seriesTotalDiff3.values.max()
+            x3 = seriesTotalDiff3.values.max()
         elif (diffMax0 <= seriesTotalDiff3.values.min()):
             color3 = 'r'
             nb_red3 += 1
@@ -535,18 +534,25 @@ def func_CreateKS(br, nbFiles):
             color3 = 'g'
             nb_green3 += 1
             x3 = diffMax0
+        print('x3 : %f' % x3)
         ymi, yMa = plt_diff_KS3.get_ylim()
         plt_diff_KS3.vlines(x3, ymi, 0.9*yMa, color=color3, linewidth=4)
         fig = plt_diff_KS3.get_figure()
-        #fig.savefig(folder + '/KS-ttlDiff_3_' + branches[i] + '_{:03d}'.format(nbFiles) + '.png')
         fig.savefig(folder + '/KS-ttlDiff_3_' + branches[i] + '.png')
         fig.clf()
         count, division = np.histogram(seriesTotalDiff3, bins=nbins)
         div_min = np.amin(division)
         div_max = np.amax(division)
+        KSDiffHistoname3 = folder + '/KSDiffHistoValues_3_' + branches[i] + '.csv'
+        wKSDiff3 = open(KSDiffHistoname3, 'w')
+        wKSDiff3.write(' '.join("{:10.04e}".format(x) for x in count))
+        wKSDiff3.write('\n')
+        wKSDiff3.write(' '.join("{:10.04e}".format(x) for x in division))
+        wKSDiff3.write('\n')
+        wKSDiff3.close()
     
         # Get the max of the integral
-        I_max = integralpValue(division, count, 0.)
+        I_max = DB.integralpValue(division, count, 0.)
         print('\nMax. integral : %0.4e for nbins=%d' % (I_max, nbins))
         # print the min/max values of differences
         print('Kolmogoroff-Smirnov min value : %0.4e - max value : %0.4e | diff value : %e \n' % (div_min, div_max, x3))
@@ -566,6 +572,16 @@ def func_CreateKS(br, nbFiles):
         wKS3.write('\n')
         wKS3.close()
 
+        '''R1 = diffR2(mean_df_entries, s_new)
+        R2 = diffR2(series_reference, s_new)
+        R3 = diffR2(s_new, s_old)
+        print('R1 = %f [mean, new]' % R1)
+        print('R2 = %f [ref, new]' % R2)
+        print('R3 = %f [old, new]' % R3)'''
+
+    toc = time.time()
+    print('Done in {:.4f} seconds'.format(toc-tic))
+
     # print nb of red/green lines
     print('KS 1 : %d red - %d green' % (nb_red1, nb_green1))
     print('KS 2 : %d red - %d green' % (nb_red2, nb_green2))
@@ -573,6 +589,10 @@ def func_CreateKS(br, nbFiles):
     nb_red = nb_red1 + nb_red2 + nb_red3
     nb_green = nb_green1 + nb_green2 + nb_green3
     print('KS ttl : %d red - %d green' % (nb_red, nb_green))
+    wKS_.write('KS 1 : %d red - %d green\n' % (nb_red1, nb_green1))
+    wKS_.write('KS 2 : %d red - %d green\n' % (nb_red2, nb_green2))
+    wKS_.write('KS 3 : %d red - %d green\n' % (nb_red3, nb_green3))
+    wKS_.write('KS ttl : %d red - %d green\n' % (nb_red, nb_green))
 
     return
 
@@ -582,15 +602,15 @@ if __name__=="__main__":
     branches = []
     branches = getBranches(tp_1)
     print(branches[0:10])
-    print(branches[5])
     #branches = branches[0:60]
 
     # nb of files to be used
-    nbFiles = 200 # 
+    nbFiles = 250
 
-    #func_Extract(branches, nbFiles) # create file with histo datas.
+    #func_Extract(branches[0:5], nbFiles) # create file with histo datas.
+    func_Extract(branches, nbFiles) # create file with histo datas.
 
-    func_CreateKS(branches[0:9], nbFiles) # create the KS files from histos datas for 5 datasets
+    #func_CreateKS(branches[0:3], nbFiles) # create the KS files from histos datas for datasets
     #func_CreateKS(branches, nbFiles)  # create the KS files from histos datas
 
     print("Fin !")

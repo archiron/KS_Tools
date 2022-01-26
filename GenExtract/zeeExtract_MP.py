@@ -11,7 +11,6 @@ import pandas as pd
 import numpy as np
 import matplotlib
 
-import matplotlib.dates as md
 matplotlib.use('agg')
 from matplotlib import pyplot as plt
 
@@ -42,10 +41,8 @@ from DecisionBox import DecisionBox
 #seaborn.set_palette('colorblind')
 
 def getListFiles(path):
-    #print('path : %s' % path)
     onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
     onlyfiles = [f for f in onlyfiles if f.endswith(".root")] # keep only root files
-    #print(onlyfiles)
     return onlyfiles
 
 def getBranches(t_p):
@@ -53,9 +50,7 @@ def getBranches(t_p):
     source = open("../ChiLib_CMS_Validation/HistosConfigFiles/ElectronMcSignalHistos.txt", "r")
     for ligne in source:
         if t_p in ligne:
-            #print(ligne)
             tmp = ligne.split(" ", 1)
-            #print(tmp[0].replace(t_p + "/", ""))
             b.append(tmp[0].replace(t_p + "/", ""))
     source.close()
     return b
@@ -63,9 +58,7 @@ def getBranches(t_p):
 def diffR2(s0,s1):
     s0 = np.asarray(s0) # if not this, ind is returned as b_00x instead of int value
     s1 = np.asarray(s1)
-    #print('s0[%d] - s1[%d]' %(len(s0), len(s1)))
     N = len(s0)
-    #print('diffR2 : %d' % N)
     R0 = 0.
     for i in range(0, N):
         t0 = s0[i]- s1[i]
@@ -217,6 +210,10 @@ def createKS_Curve(df, ttlD, yC1, yCC1, histo_name, diffMax0, nbins, str_nb):
     # print the min/max values of differences
     print('%s :: Kolmogoroff-Smirnov min value : %0.4e - max value : %0.4e | diff value : %e \n' % (histo_name, div_min, div_max, x1))
     #stop
+    # print the p-Value
+    pValue = DB.integralpValue(division, count, diffMax0)
+    print('\n%s :: unormalized p_Value : %0.4e for nbins=%d' % (histo_name, pValue, nbins))
+    print('%s :: normalized p_Value : %0.4e for nbins=%d' % (histo_name, pValue/I_max, nbins))
     # save the KS curves
     wKS1.write('%e, %d\n' % (I_max, nbins))
     wKS1.write('%e, %e\n' % (div_min, div_max))
@@ -447,7 +444,9 @@ def func_CreateKS(br, nbFiles):
     #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre2-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
     #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre3-120X_mcRun3_2021_realistic_v1-v1__DQMIO.root'
     #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre6-120X_mcRun3_2021_realistic_v4-v1__DQMIO.root'
-    input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v15-v1__DQMIO.root'
+    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v15-v1__DQMIO.root'
+    input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v9000-v214__DQMIO.root'
+    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_2_0_pre2-122X_mcRun3_2021_realistic_v1-v2__DQMIO.root'
     #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_2_0_pre3-122X_mcRun3_2021_realistic_v5-v1__DQMIO.root'
     #input_rel_file = 'DATA/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_056.root'
     f_rel = ROOT.TFile(input_rel_file)
@@ -457,16 +456,15 @@ def func_CreateKS(br, nbFiles):
     #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre1-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
     #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre2-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
     #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre4-120X_mcRun3_2021_realistic_v2-v1__DQMIO.root'
-    input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre4-121X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
+    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre4-121X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
     #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v15-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v9000-v214__DQMIO.root'
+    input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v9000-v057__DQMIO.root'
     #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_2_0_pre2-122X_mcRun3_2021_realistic_v1-v2__DQMIO.root'
     #input_ref_file = 'DATA/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_017.root'
     #ind_ref_file = 214 # np.random.randint(0, nbFiles)
     #input_ref_file = folderName + '/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_' + '{:03d}'.format(ind_ref_file) + '.root'
     #print('we use the %d file as reference' % ind_ref_file)
     #print('we use : %s file as reference' % input_ref_file)
-
     f_ref = ROOT.TFile(input_ref_file)
 
     nb_red1 = 0
@@ -541,13 +539,13 @@ if __name__=="__main__":
     cleanBranches(branches) # remove some histo wich have a pbm with KS.
 
     # nb of files to be used
-    nbFiles = 251
+    nbFiles = 250
 
     #func_Extract(branches[0:5], nbFiles) # create file with histo datas.
     #func_Extract(branches, nbFiles) # create file with histo datas.
 
-    func_CreateKS(branches[0:3], nbFiles) # create the KS files from histos datas for datasets
-    #func_CreateKS(branches, nbFiles)  # create the KS files from histos datas
+    #func_CreateKS(branches[0:3], nbFiles) # create the KS files from histos datas for datasets
+    func_CreateKS(branches, nbFiles)  # create the KS files from histos datas
 
     print("Fin !")
 

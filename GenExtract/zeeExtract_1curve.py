@@ -1,7 +1,15 @@
 #! /usr/bin/env python
 #-*-coding: utf-8 -*-
 
+################################################################################
+# zeeExtract_MP: a tool to generate Kolmogorov-Smirnov values/pictures
+# for egamma validation comparison                              
+#
 # MUST be launched with the cmsenv cmd after a cmsrel cmd !!
+#                                                                              
+# Arnaud Chiron-Turlay LLR - arnaud.chiron@llr.in2p3.fr                        
+#                                                                              
+################################################################################
 
 import os,sys
 import time
@@ -36,6 +44,7 @@ sys.path.append('../ChiLib_CMS_Validation')
 from graphicFunctions import getHisto
 from default import *
 from DecisionBox import DecisionBox
+from sources import *
 
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
@@ -176,33 +185,13 @@ def func_CreateKS(br, nbFiles):
         print('Folder %s already created\n' % folder)
 
     # get the "new" root file datas
-    #input_rel_file = 'DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_new.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre1-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre2-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre3-120X_mcRun3_2021_realistic_v1-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre6-120X_mcRun3_2021_realistic_v4-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v15-v1__DQMIO.root'
-    input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_2_0_pre3-122X_mcRun3_2021_realistic_v5-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_056.root'
     f_rel = ROOT.TFile(input_rel_file)
 
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre5-113X_mcRun3_2021_realistic_v7-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre6-113X_mcRun3_2021_realistic_v9-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre1-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre2-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre4-120X_mcRun3_2021_realistic_v2-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre4-121X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v15-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v9000-v214__DQMIO.root'
-    input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_2_0_pre2-122X_mcRun3_2021_realistic_v1-v2__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_017.root'
-    #ind_ref_file = 214 # np.random.randint(0, nbFiles)
-    #input_ref_file = folderName + '/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_' + '{:03d}'.format(ind_ref_file) + '.root'
-    #print('we use the %d file as reference' % ind_ref_file)
-    #print('we use : %s file as reference' % input_ref_file)
-
+    # get the "reference" root file datas
     f_ref = ROOT.TFile(input_ref_file)
+
+    print('we use the %s file as reference' % input_ref_file)
+    print('we use : %s file as new release' % input_rel_file)
 
     nb_red1 = 0
     nb_green1 = 0
@@ -218,6 +207,10 @@ def func_CreateKS(br, nbFiles):
     KS_resume = folder + "histo_resume.txt"
     print("KSname 0 : %s" % KS_resume)
     wKS_ = open(KS_resume, 'w')
+
+    KS_pValues = folder + "histo_pValues.txt"
+    print("KSname 2 : %s" % KS_pValues)
+    wKSp = open(KS_pValues, 'w')
 
     ind_reference = 199 # np.random.randint(0, nbFiles)
     print('reference ind. : %d' % ind_reference)
@@ -448,10 +441,13 @@ def func_CreateKS(br, nbFiles):
 
         # Get the max of the integral
         I_max = DB.integralpValue(division, count, 0.)
-        print('\nMax. integral : %0.4e for nbins=%d' % (I_max, nbins))
+        print('\nMax. integral 1 : %0.4e for nbins=%d' % (I_max, nbins))
         # print the min/max values of differences
         print('Kolmogoroff-Smirnov min value : %0.4e - max value : %0.4e | diff value : %e \n' % (div_min, div_max, x1))
         #stop
+        pValue = DB.integralpValue(division, count, diffMax0)
+        #print(division)
+        #print(count)
         # save the KS curves
         wKS1.write('%e, %d\n' % (I_max, nbins))
         wKS1.write('%e, %e\n' % (div_min, div_max))
@@ -500,12 +496,15 @@ def func_CreateKS(br, nbFiles):
         wKSDiff2.close()
     
         # Get the max of the integral
-        I_max = DB.integralpValue(division, count, 0.)
-        print('\nMax. integral : %0.4e for nbins=%d' % (I_max, nbins))
+        I_max2 = DB.integralpValue(division, count, 0.)
+        print('\nMax. integral 2 : %0.4e for nbins=%d' % (I_max2, nbins))
         # print the min/max values of differences
         print('Kolmogoroff-Smirnov min value : %0.4e - max value : %0.4e | diff value : %e \n' % (div_min, div_max, x2))
+        pValue2 = DB.integralpValue(division, count, diffMax0)
+        #print(division)
+        #print(count)
         # save the KS curves
-        wKS2.write('%e, %d\n' % (I_max, nbins))
+        wKS2.write('%e, %d\n' % (I_max2, nbins))
         wKS2.write('%e, %e\n' % (div_min, div_max))
         wKS2.write(' '.join("{:10.04e}".format(x) for x in count))
         wKS2.write('\n')
@@ -521,7 +520,7 @@ def func_CreateKS(br, nbFiles):
         seriesTotalDiff3 = pd.DataFrame(totalDiff3, columns=['new'])
         plt_diff_KS3 = seriesTotalDiff3.plot.hist(bins=nbins, title='KS diff. 3')
         print('\ndiffMin0/sTD.min 3 : %f/%f' % (diffMax0, seriesTotalDiff3.values.min()))
-        print('\ndiffMax0/sTD.max 3 : %f/%f' % (diffMax0, seriesTotalDiff3.values.max()))
+        print('diffMax0/sTD.max 3 : %f/%f' % (diffMax0, seriesTotalDiff3.values.max()))
         if (diffMax0 >= seriesTotalDiff3.values.max()):
             color3 = 'r'
             nb_red3 += 1
@@ -552,15 +551,28 @@ def func_CreateKS(br, nbFiles):
         wKSDiff3.close()
     
         # Get the max of the integral
-        I_max = DB.integralpValue(division, count, 0.)
-        print('\nMax. integral : %0.4e for nbins=%d' % (I_max, nbins))
+        I_max3 = DB.integralpValue(division, count, 0.)
+        print('\nMax. integral 3 : %0.4e for nbins=%d' % (I_max3, nbins))
         # print the min/max values of differences
         print('Kolmogoroff-Smirnov min value : %0.4e - max value : %0.4e | diff value : %e \n' % (div_min, div_max, x3))
-        #stop
+        pValue3 = DB.integralpValue(division, count, diffMax0)
+        #print(division)
+        #print(count)
+        # print the p-Value
+        print('\nunormalized p_Value : %0.4e for nbins=%d' % (pValue, nbins))
+        print('normalized p_Value : %0.4e for nbins=%d' % (pValue/I_max, nbins))
+        # print the p-Value 2
+        print('\nunormalized p_Value : %0.4e for nbins=%d' % (pValue2, nbins))
+        print('normalized p_Value : %0.4e for nbins=%d' % (pValue2/I_max2, nbins))
+        # print the p-Value 3
+        print('\nunormalized p_Value : %0.4e for nbins=%d' % (pValue3, nbins))
+        print('normalized p_Value : %0.4e for nbins=%d' % (pValue3/I_max3, nbins))
+
+        wKSp.write('%s, %e, %e, %e\n' % (branches[i], pValue/I_max, pValue2/I_max2, pValue3/I_max3))
 
         plt.close('all')
         # save the KS curves
-        wKS3.write('%e, %d\n' % (I_max, nbins))
+        wKS3.write('%e, %d\n' % (I_max3, nbins))
         wKS3.write('%e, %e\n' % (div_min, div_max))
         wKS3.write(' '.join("{:10.04e}".format(x) for x in count))
         wKS3.write('\n')
@@ -608,9 +620,9 @@ if __name__=="__main__":
     nbFiles = 250
 
     #func_Extract(branches[0:5], nbFiles) # create file with histo datas.
-    func_Extract(branches, nbFiles) # create file with histo datas.
+    #func_Extract(branches, nbFiles) # create file with histo datas.
 
-    #func_CreateKS(branches[0:3], nbFiles) # create the KS files from histos datas for datasets
+    func_CreateKS(branches[0:3], nbFiles) # create the KS files from histos datas for datasets
     #func_CreateKS(branches, nbFiles)  # create the KS files from histos datas
 
     print("Fin !")

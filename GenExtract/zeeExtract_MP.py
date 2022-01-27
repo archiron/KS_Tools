@@ -1,7 +1,15 @@
 #! /usr/bin/env python
 #-*-coding: utf-8 -*-
 
+################################################################################
+# zeeExtract_MP: a tool to generate Kolmogorov-Smirnov values/pictures
+# for egamma validation comparison                              
+#
 # MUST be launched with the cmsenv cmd after a cmsrel cmd !!
+#                                                                              
+# Arnaud Chiron-Turlay LLR - arnaud.chiron@llr.in2p3.fr                        
+#                                                                              
+################################################################################
 
 import os,sys
 import multiprocessing
@@ -36,6 +44,7 @@ sys.path.append('../ChiLib_CMS_Validation')
 from graphicFunctions import getHisto
 from default import *
 from DecisionBox import DecisionBox
+from sources import *
 
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
@@ -214,6 +223,7 @@ def createKS_Curve(df, ttlD, yC1, yCC1, histo_name, diffMax0, nbins, str_nb):
     pValue = DB.integralpValue(division, count, diffMax0)
     print('\n%s :: unormalized p_Value : %0.4e for nbins=%d' % (histo_name, pValue, nbins))
     print('%s :: normalized p_Value : %0.4e for nbins=%d' % (histo_name, pValue/I_max, nbins))
+
     # save the KS curves
     wKS1.write('%e, %d\n' % (I_max, nbins))
     wKS1.write('%e, %e\n' % (div_min, div_max))
@@ -226,7 +236,7 @@ def createKS_Curve(df, ttlD, yC1, yCC1, histo_name, diffMax0, nbins, str_nb):
     wKS1.write(' '.join("{:10.04e}".format(x) for x in yCC1 ))
     wKS1.write('\n')
     wKS1.close()
-    return aa
+    return aa, pValue/I_max
 
 def createAll(args):
     DB = DecisionBox()
@@ -394,27 +404,27 @@ def createAll(args):
     yellowCurveCum3 = DB.funcKS(s_new)
 
     # Kolmogoroff-Smirnov curve 1
-    bb = createKS_Curve(df, totalDiff, yellowCurve1, yellowCurveCum1, histo_name, diffMax0, nbins, '1')
+    bb, pV1 = createKS_Curve(df, totalDiff, yellowCurve1, yellowCurveCum1, histo_name, diffMax0, nbins, '1')
     nb_red1 = bb[0]
     nb_green1 = bb[1]
     x1 = bb[2]
     print('%s :: x1 : %f - color : %s' % (histo_name, x1, bb[3]))
 
     # Kolmogoroff-Smirnov curve 2
-    bb = createKS_Curve(df, totalDiff2, yellowCurve2, yellowCurveCum2, histo_name, diffMax0, nbins, '2')
+    bb, pV2 = createKS_Curve(df, totalDiff2, yellowCurve2, yellowCurveCum2, histo_name, diffMax0, nbins, '2')
     nb_red2 = bb[0]
     nb_green2 = bb[1]
     x2 = bb[2]
     print('%s :: x2 : %f - color : %s' % (histo_name, x2, bb[3]))
 
     # Kolmogoroff-Smirnov curve 2
-    bb = createKS_Curve(df, totalDiff3, yellowCurve3, yellowCurveCum3, histo_name, diffMax0, nbins, '3')
+    bb, pV3 = createKS_Curve(df, totalDiff3, yellowCurve3, yellowCurveCum3, histo_name, diffMax0, nbins, '3')
     nb_red3 = bb[0]
     nb_green3 = bb[1]
     x3 = bb[2]
     print('%s :: x3 : %f - color : %s' % (histo_name, x3, bb[3]))
 
-    return histo_name, diffMax0, nb_red1, nb_green1, nb_red2, nb_green2, nb_red3, nb_green3
+    return histo_name, diffMax0, nb_red1, nb_green1, nb_red2, nb_green2, nb_red3, nb_green3, pV1, pV2, pV3
 
 def func_CreateKS(br, nbFiles):
     print("func_Extract")
@@ -438,34 +448,13 @@ def func_CreateKS(br, nbFiles):
         print('Folder %s already created\n' % folder)
 
     # get the "new" root file datas
-    #input_rel_file = 'DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_new.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre1-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre2-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre3-120X_mcRun3_2021_realistic_v1-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre6-120X_mcRun3_2021_realistic_v4-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v15-v1__DQMIO.root'
-    input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v9000-v214__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_2_0_pre2-122X_mcRun3_2021_realistic_v1-v2__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_2_0_pre3-122X_mcRun3_2021_realistic_v5-v1__DQMIO.root'
-    #input_rel_file = 'DATA/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_056.root'
     f_rel = ROOT.TFile(input_rel_file)
 
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre5-113X_mcRun3_2021_realistic_v7-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_11_3_0_pre6-113X_mcRun3_2021_realistic_v9-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre1-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre2-113X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_0_0_pre4-120X_mcRun3_2021_realistic_v2-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre4-121X_mcRun3_2021_realistic_v10-v1__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v15-v1__DQMIO.root'
-    input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_1_0_pre5-121X_mcRun3_2021_realistic_v9000-v057__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__RelValZEE_14__CMSSW_12_2_0_pre2-122X_mcRun3_2021_realistic_v1-v2__DQMIO.root'
-    #input_ref_file = 'DATA/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_017.root'
-    #ind_ref_file = 214 # np.random.randint(0, nbFiles)
-    #input_ref_file = folderName + '/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_' + '{:03d}'.format(ind_ref_file) + '.root'
-    #print('we use the %d file as reference' % ind_ref_file)
-    #print('we use : %s file as reference' % input_ref_file)
+    # get the "reference" root file datas
     f_ref = ROOT.TFile(input_ref_file)
+
+    print('we use the %s file as reference' % input_ref_file)
+    print('we use : %s file as new release' % input_rel_file)
 
     nb_red1 = 0
     nb_green1 = 0
@@ -481,6 +470,10 @@ def func_CreateKS(br, nbFiles):
     KS_resume = folder + "histo_resume.txt"
     print("KSname 0 : %s" % KS_resume)
     wKS_ = open(KS_resume, 'w')
+
+    KS_pValues = folder + "histo_pValues.txt"
+    print("KSname 2 : %s" % KS_pValues)
+    wKSp = open(KS_pValues, 'w')
 
     h1 = getHisto(f_rel, tp_1)
     h2 = getHisto(f_ref, tp_1)
@@ -508,6 +501,7 @@ def func_CreateKS(br, nbFiles):
         nb_green2 += item[5]
         nb_red3 += item[6]
         nb_green3 += item[7]
+        wKSp.write('%s, %e, %e, %e\n' % (item[0], item[8], item[9], item[10]))
 
     toc = time.time()
     print('Done in {:.4f} seconds'.format(toc-tic))
@@ -544,8 +538,8 @@ if __name__=="__main__":
     #func_Extract(branches[0:5], nbFiles) # create file with histo datas.
     #func_Extract(branches, nbFiles) # create file with histo datas.
 
-    #func_CreateKS(branches[0:3], nbFiles) # create the KS files from histos datas for datasets
-    func_CreateKS(branches, nbFiles)  # create the KS files from histos datas
+    func_CreateKS(branches[0:3], nbFiles) # create the KS files from histos datas for datasets
+    #func_CreateKS(branches, nbFiles)  # create the KS files from histos datas
 
     print("Fin !")
 

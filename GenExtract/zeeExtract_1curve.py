@@ -68,6 +68,14 @@ def getBranches(t_p):
     source.close()
     return b
 
+def cleanBranches(branches):
+    #if (branches[i] == 'h_ele_seedMask_Tec'): # temp (pbm with nan)
+    #if re.search('OfflineV', branches[i]): # temp (pbm with nbins=81 vs nbins=80)
+    toBeRemoved = ['h_ele_seedMask_Tec']
+    for ele in toBeRemoved:
+        if ele in branches:
+            branches.remove(ele)
+
 def diffR2(s0,s1):
     s0 = np.asarray(s0) # if not this, ind is returned as b_00x instead of int value
     s1 = np.asarray(s1)
@@ -218,10 +226,6 @@ def func_CreateKS(br, nbFiles):
     tic = time.time()
 
     for i in range(0, N_histos): # 1 histo for debug
-        if (branches[i] == 'h_ele_seedMask_Tec'): # temp (pbm with nan)
-            i += 1
-        #if re.search('OfflineV', branches[i]): # temp (pbm with nbins=81 vs nbins=80)
-        #    continue # i += 1
         name = folderName + "histo_" + branches[i] + '_{:03d}'.format(nbFiles) + "_0_lite.txt"
         print('\n%d - %s' %(i, name))
         df = pd.read_csv(name)
@@ -615,6 +619,7 @@ if __name__=="__main__":
     branches = getBranches(tp_1)
     print(branches[0:10])
     #branches = branches[0:60]
+    cleanBranches(branches) # remove some histo wich have a pbm with KS.
 
     # nb of files to be used
     nbFiles = 250

@@ -49,6 +49,74 @@ from sources import *
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
 
+def changeColor(color):
+    # 30:noir ; 31:rouge; 32:vert; 33:orange; 34:bleu; 35:violet; 36:turquoise; 37:blanc
+    # other references at https://misc.flogisoft.com/bash/tip_colors_and_formatting
+    if (color == 'black'):
+        return '[30m'
+    elif (color == 'red'):
+        return '[31m'
+    elif (color == 'green'):
+        return '[32m'
+    elif (color == 'orange'):
+        return '[33m'
+    elif (color == 'blue'):
+        return '[34m'
+    elif (color == ''):
+        return '[35m'
+    elif (color == 'purple'):
+        return '[36m'
+    elif (color == 'turquoise'):
+        return '[37m'
+    elif (color == 'lightyellow'):
+        return '[93m'
+    else:
+        return '[30m'
+
+def colorText(sometext, color):
+    return '\033' + changeColor(color) + sometext + '\033[0m'
+
+def changeDirectory(rootFile, path):
+    """
+    Change the current directory (ROOT.gDirectory) by the corresponding (rootFile,pathSplit)
+    module from cmdLineUtils.py
+    """
+    rootFile.cd()
+    theDir = ROOT.gDirectory.Get(path)
+    if not theDir:
+        print("Directory %s does not exist." % path)
+    else:
+        theDir.cd()
+    return 0
+
+def checkLevel(f_rel, f_out, path0, listkeys, nb, inPath):
+    print('\npath : %s' % path0)
+    if path0 != "":
+        path0 += '/'
+    for elem in listkeys:
+        #print('%d == checkLevel : %s' % (nb, elem.GetTitle()))
+        if (elem.GetClassName() == "TDirectoryFile"):
+            path = path0 + elem.GetName()
+            if (nb >= 3 and re.search(inPath, path)):
+                print('\npath : %s' % path)
+                f_out.mkdir(path)
+            tmp = f_rel.Get(path).GetListOfKeys()
+            checkLevel(path, tmp, nb+1)
+        elif (elem.GetClassName() == "TTree"):
+            #print('------ TTree')
+            src = f_rel.Get(path0)
+            cloned = src.CloneTree()
+            #f_out.WriteTObject(cloned, elem.GetName())
+            if (nb >= 3 and re.search(inPath, path0)):
+                changeDirectory(f_out, path0[:-1])
+                cloned.Write()
+        elif (elem.GetClassName() != "TDirectory"):
+            #print('copy %s object into %s path' % (elem.GetName(), path0[:-1]))
+            #f_out.WriteTObject(elem.ReadObj(), elem.GetName())#:"DQMData/Run 1/EgammaV"
+            if (nb >= 3 and re.search(inPath, path0)):
+                changeDirectory(f_out, path0[:-1])
+                elem.ReadObj().Write()
+
 def getListFiles(path):
     onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
     onlyfiles = [f for f in onlyfiles if f.endswith(".root")] # keep only root files
@@ -82,8 +150,8 @@ def getposColo(diffMax0, Diff_min, Diff_max):
         nb_red = 1
         x = Diff_max
     elif (diffMax0 <= Diff_min):
-        color = 'r'
-        nb_red += 1
+        color = 'g'
+        nb_green = 1
         x = Diff_min
     else:
         color = 'g'
@@ -94,7 +162,7 @@ def getposColo(diffMax0, Diff_min, Diff_max):
 def cleanBranches(branches):
     #if (branches[i] == 'h_ele_seedMask_Tec'): # temp (pbm with nan)
     #if re.search('OfflineV', branches[i]): # temp (pbm with nbins=81 vs nbins=80)
-    toBeRemoved = ['h_ele_seedMask_Tec']
+    toBeRemoved = ['h_ele_seedMask_Tec'] # , 'h_ele_convRadius', 'h_ele_PoPtrue_golden_barrel', 'h_ele_PoPtrue_showering_barrel'
     for ele in toBeRemoved:
         if ele in branches:
             branches.remove(ele)
@@ -125,7 +193,7 @@ def func_Extract(br, nbFiles): # read files
     for elem in fileList:
         input_file = folderName + str(elem.split()[0])
         name_1 = input_file.replace(folderName, '').replace('DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_', '').replace('.root', '')
-        print('\n %s - name_1 : %s' % (input_file, name_1))
+        print('\n %s - name_1 : %s' % (input_file, colorText(name_1, 'lightyellow')))
         
         f_root = ROOT.TFile(input_file) # 'DATA/' + 
         h1 = getHisto(f_root, tp_1)
@@ -179,6 +247,36 @@ def func_Extract(br, nbFiles): # read files
         i_leaf +=1
     return
 
+def func_ReduceSize(nbFiles):
+    print("func_ReduceSize")
+    
+    fileList = getListFiles(folderName) # get the list of the root files in the folderName folder
+    fileList.sort()
+    print('there is %d files' % len(fileList))
+    fileList = fileList[0:nbFiles]
+    print('file list :')
+    print(fileList)
+    print('-- end --')
+
+    for elem in fileList:
+        input_file = folderName + str(elem.split()[0])
+        print('\n %s' % input_file)
+
+        paths = ['DQMData/Run 1/EgammaV', 'DQMData/Run 1/Info']
+
+        f_rel = ROOT.TFile(input_file, "UPDATE")
+        racine = input_file.split('.')
+        f_out = TFile(racine[0] + 'b.' + racine[1], 'recreate')
+        t2 = f_rel.GetListOfKeys()
+        print(racine[0] + 'b.' + racine[1])
+        for elem in paths:
+            checkLevel(f_rel, f_out, "", t2, 0, elem)
+
+        f_out.Close()
+        f_rel.Close()
+
+    return
+
 def createKS_Curve(df, ttlD, yC1, yCC1, histo_name, diffMax0, nbins, str_nb):
     # Kolmogoroff-Smirnov curve
     DB = DecisionBox()
@@ -188,12 +286,10 @@ def createKS_Curve(df, ttlD, yC1, yCC1, histo_name, diffMax0, nbins, str_nb):
     seriesTotalDiff = pd.DataFrame(ttlD, columns=['KSDiff'])
     KSDiffname1 = folder + '/KSDiffValues_' + str_nb + '_' + histo_name + '.txt'
     df.to_csv(KSDiffname1)
-    plt_diff_KS1 = seriesTotalDiff.plot.hist(bins=nbins, title='KS diff.')
+    plt_diff_KS1 = seriesTotalDiff.plot.hist(bins=nbins, title='KS diff.' + str_nb)
     print('\n%s :: diffMin0/sTD.min 1 : %f/%f' % (histo_name, diffMax0, seriesTotalDiff.values.min()))
     print('%s :: diffMax0/sTD.max 1 : %f/%f' % (histo_name, diffMax0, seriesTotalDiff.values.max()))
     aa = getposColo(diffMax0, seriesTotalDiff.values.min(), seriesTotalDiff.values.max())
-    #nb_red1 += aa[0]
-    #nb_green1 += aa[1]
     x1 = aa[2]
     color1 = aa[3]
     print('%s :: x : %f' % (histo_name, x1))
@@ -404,25 +500,25 @@ def createAll(args):
     yellowCurveCum3 = DB.funcKS(s_new)
 
     # Kolmogoroff-Smirnov curve 1
-    bb, pV1 = createKS_Curve(df, totalDiff, yellowCurve1, yellowCurveCum1, histo_name, diffMax0, nbins, '1')
-    nb_red1 = bb[0]
-    nb_green1 = bb[1]
-    x1 = bb[2]
-    print('%s :: x1 : %f - color : %s' % (histo_name, x1, bb[3]))
+    bb1, pV1 = createKS_Curve(df, totalDiff, yellowCurve1, yellowCurveCum1, histo_name, diffMax0, nbins, '1')
+    nb_red1 = bb1[0]
+    nb_green1 = bb1[1]
+    x1 = bb1[2]
+    print('%s :: x1 : %f - color : %s' % (histo_name, x1, bb1[3]))
 
     # Kolmogoroff-Smirnov curve 2
-    bb, pV2 = createKS_Curve(df, totalDiff2, yellowCurve2, yellowCurveCum2, histo_name, diffMax0, nbins, '2')
-    nb_red2 = bb[0]
-    nb_green2 = bb[1]
-    x2 = bb[2]
-    print('%s :: x2 : %f - color : %s' % (histo_name, x2, bb[3]))
+    bb2, pV2 = createKS_Curve(df, totalDiff2, yellowCurve2, yellowCurveCum2, histo_name, diffMax0, nbins, '2')
+    nb_red2 = bb2[0]
+    nb_green2 = bb2[1]
+    x2 = bb2[2]
+    print('%s :: x2 : %f - color : %s' % (histo_name, x2, bb2[3]))
 
     # Kolmogoroff-Smirnov curve 2
-    bb, pV3 = createKS_Curve(df, totalDiff3, yellowCurve3, yellowCurveCum3, histo_name, diffMax0, nbins, '3')
-    nb_red3 = bb[0]
-    nb_green3 = bb[1]
-    x3 = bb[2]
-    print('%s :: x3 : %f - color : %s' % (histo_name, x3, bb[3]))
+    bb3, pV3 = createKS_Curve(df, totalDiff3, yellowCurve3, yellowCurveCum3, histo_name, diffMax0, nbins, '3')
+    nb_red3 = bb3[0]
+    nb_green3 = bb3[1]
+    x3 = bb3[2]
+    print('%s :: x3 : %f - color : %s' % (histo_name, x3, bb3[3]))
 
     return histo_name, diffMax0, nb_red1, nb_green1, nb_red2, nb_green2, nb_red3, nb_green3, pV1, pV2, pV3
 
@@ -454,7 +550,7 @@ def func_CreateKS(br, nbFiles):
     f_ref = ROOT.TFile(input_ref_file)
 
     print('we use the %s file as reference' % input_ref_file)
-    print('we use : %s file as new release' % input_rel_file)
+    print('we use the %s file as new release' % input_rel_file)
 
     nb_red1 = 0
     nb_green1 = 0
@@ -486,7 +582,7 @@ def func_CreateKS(br, nbFiles):
     tic = time.time()
     print('===', h1)
     pool_obj = multiprocessing.Pool()
-    args = ((elem, h1.Get(elem), h2.Get(elem), nbins, ind_reference) for elem in branches) # , h2
+    args = ((elem, h1.Get(elem), h2.Get(elem), nbins, ind_reference) for elem in branches) 
     answer = pool_obj.map(createAll, args)
     print(answer, len(answer))
     # to remove None values in list
@@ -528,17 +624,19 @@ if __name__=="__main__":
     branches = []
     branches = getBranches(tp_1)
     print(branches[0:9])
-    #branches = branches[241:]
+    #branches = branches[151:200]
     #branches = ['h_ele_PoPtrueVsEta_pfx', 'h_ele_PoPtrueVsPhi_pfx', 'h_scl_EoEtruePfVsEg_pfy', 'h_ele_EtaMnEtaTrueVsEta_pfx']
     cleanBranches(branches) # remove some histo wich have a pbm with KS.
 
     # nb of files to be used
-    nbFiles = 250
+    nbFiles = 750
+
+    #func_ReduceSize(nbFiles)
 
     #func_Extract(branches[0:5], nbFiles) # create file with histo datas.
-    #func_Extract(branches, nbFiles) # create file with histo datas.
+    func_Extract(branches, nbFiles) # create file with histo datas.
 
-    func_CreateKS(branches[0:3], nbFiles) # create the KS files from histos datas for datasets
+    #func_CreateKS(branches[230:], nbFiles) # create the KS files from histos datas for datasets
     #func_CreateKS(branches, nbFiles)  # create the KS files from histos datas
 
     print("Fin !")

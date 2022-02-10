@@ -26,8 +26,6 @@ from matplotlib import pyplot as plt
 
 # lines below are only for func_Extract
 from sys import argv
-from os import listdir
-from os.path import isfile, join
 
 argv.append( '-b-' )
 import ROOT
@@ -40,7 +38,10 @@ ROOT.gSystem.Load("libFWCoreFWLite.so")
 ROOT.gSystem.Load("libDataFormatsFWLite.so")
 ROOT.FWLiteEnabler.enable()
 
-sys.path.append('../ChiLib_CMS_Validation')
+Chilib_path = '../ChiLib_CMS_Validation'
+Chilib_path = '/pbs/home/c/chiron/private/KS_Tools/ChiLib_CMS_Validation'
+#sys.path.append(Chilib_path)
+sys.path.append(Chilib_path)
 from graphicFunctions import getHisto
 from default import *
 from DecisionBox import DecisionBox
@@ -76,57 +77,9 @@ def changeColor(color):
 def colorText(sometext, color):
     return '\033' + changeColor(color) + sometext + '\033[0m'
 
-def changeDirectory(rootFile, path):
-    """
-    Change the current directory (ROOT.gDirectory) by the corresponding (rootFile,pathSplit)
-    module from cmdLineUtils.py
-    """
-    rootFile.cd()
-    theDir = ROOT.gDirectory.Get(path)
-    if not theDir:
-        print("Directory %s does not exist." % path)
-    else:
-        theDir.cd()
-    return 0
-
-def checkLevel(f_rel, f_out, path0, listkeys, nb, inPath):
-    print('\npath : %s' % path0)
-    if path0 != "":
-        path0 += '/'
-    for elem in listkeys:
-        #print('%d == checkLevel : %s' % (nb, elem.GetTitle()))
-        if (elem.GetClassName() == "TDirectoryFile"):
-            path = path0 + elem.GetName()
-            if (nb >= 3 and re.search(inPath, path)):
-                print('\npath : %s' % path)
-                f_out.mkdir(path)
-            tmp = f_rel.Get(path).GetListOfKeys()
-            checkLevel(f_rel, f_out, path, tmp, nb+1)
-        elif (elem.GetClassName() == "TTree"):
-            #print('------ TTree')
-            src = f_rel.Get(path0)
-            cloned = src.CloneTree()
-            #f_out.WriteTObject(cloned, elem.GetName())
-            if (nb >= 3 and re.search(inPath, path0)):
-                changeDirectory(f_out, path0[:-1])
-                cloned.Write()
-        elif (elem.GetClassName() != "TDirectory"):
-            #print('copy %s object into %s path' % (elem.GetName(), path0[:-1]))
-            #f_out.WriteTObject(elem.ReadObj(), elem.GetName())#:"DQMData/Run 1/EgammaV"
-            if (nb >= 3 and re.search(inPath, path0)):
-                changeDirectory(f_out, path0[:-1])
-                elem.ReadObj().Write()
-
-def getListFiles(path):
-    #print('path : %s' % path)
-    onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
-    onlyfiles = [f for f in onlyfiles if f.endswith(".root")] # keep only root files
-    #print(onlyfiles)
-    return onlyfiles
-
 def getBranches(t_p):
     b = []
-    source = open("../ChiLib_CMS_Validation/HistosConfigFiles/ElectronMcSignalHistos.txt", "r")
+    source = open(Chilib_path + "/HistosConfigFiles/ElectronMcSignalHistos.txt", "r")
     for ligne in source:
         if t_p in ligne:
             #print(ligne)
@@ -143,130 +96,6 @@ def cleanBranches(branches):
     for ele in toBeRemoved:
         if ele in branches:
             branches.remove(ele)
-
-def diffR2(s0,s1):
-    s0 = np.asarray(s0) # if not this, ind is returned as b_00x instead of int value
-    s1 = np.asarray(s1)
-    #print('s0[%d] - s1[%d]' %(len(s0), len(s1)))
-    N = len(s0)
-    #print('diffR2 : %d' % N)
-    R0 = 0.
-    for i in range(0, N):
-        t0 = s0[i]- s1[i]
-        R0 += t0 * t0
-    return R0/N
-
-def func_Extract(br, nbFiles): # read files
-    print("func_Extract")
-    
-    branches = []
-    wr = []
-    histos = {}
-        
-
-    # get the branches for ElectronMcSignalHistos.txt
-    #branches += ["h_recEleNum", "h_scl_ESFrac_endcaps", "h_scl_sigietaieta", "h_ele_PoPtrue_endcaps", "h_ele_PoPtrue", "h_scl_bcl_EtotoEtrue_endcaps", "h_scl_bcl_EtotoEtrue_barrel", "h_ele_Et"]
-    #branches += ["h_recEleNum"]
-    branches = br
-    for leaf in branches:
-        histos[leaf] = []
-    
-    fileList = getListFiles(folderName) # get the list of the root files in the folderName folder
-    fileList.sort()
-    print('there is %d files' % len(fileList))
-    fileList = fileList[0:nbFiles]
-    print('file list :')
-    print(fileList)
-    print('-- end --')
-
-    for elem in fileList:
-        input_file = folderName + str(elem.split()[0])
-        name_1 = input_file.replace(folderName, '').replace('DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_', '').replace('.root', '')
-        print('\n %s - name_1 : %s' % (input_file, colorText(name_1, 'lightyellow')))
-        
-        f_root = ROOT.TFile(input_file) # 'DATA/' + 
-        h1 = getHisto(f_root, tp_1)
-        #h1.ls()
-        for leaf in branches:
-            print("== %s ==" % leaf)
-            temp_leaf = []
-            histo = h1.Get(leaf)
-
-            temp_leaf.append(histo.GetMean()) # 0
-            temp_leaf.append(histo.GetMeanError()) # 2
-            temp_leaf.append(histo.GetStdDev()) # 6
-            temp_leaf.append(histo.GetEntries()) # 6b
-
-            temp_leaf.append(name_1) # 7
-            #print('temp_leaf : %s' % temp_leaf)
-            
-            texttoWrite = ''
-            i=0
-            for entry in histo:
-                #print(i,entry)
-                texttoWrite += 'b_' + '{:03d}'.format(i) + ',c_' + '{:03d},'.format(i)
-                temp_leaf.append(entry) # b_
-                temp_leaf.append(histo.GetBinError(i)) # c_
-                i+=1
-            print('there is %d entries' % i)
-            texttoWrite = texttoWrite[:-1] # remove last char
-            temp_leaf.append(texttoWrite) # end
-            histos[leaf].append(temp_leaf)
-
-    #print histos into histo named files
-    i_leaf = 0
-    for leaf in branches:
-        wr.append(open(folderName + 'histo_' + str(leaf) + '_' + '{:03d}'.format(nbFiles) + '_0_lite.txt', 'w'))
-        nb_max = len(histos[leaf][0]) - 1
-        print("== %s == nb_max : %d" % (leaf, nb_max))
-        wr[i_leaf].write('evol,Mean,MeanError,StdDev,nbBins,name,')
-        wr[i_leaf].write(str(histos[leaf][0][nb_max]))
-        wr[i_leaf].write('\n')
-        #'''
-        for i_file in range(0, len(fileList)):
-            texttoWrite = str(i_file) + ','
-            wr[i_leaf].write(texttoWrite) 
-            for i in range(0, nb_max-1):
-                #print('i : %d' % i)
-                wr[i_leaf].write(str(histos[leaf][i_file][i]))
-                wr[i_leaf].write(',')
-            wr[i_leaf].write(str(histos[leaf][i_file][nb_max-1]))
-            texttoWrite = '\n'
-            wr[i_leaf].write(texttoWrite) 
-        wr[i_leaf].close()
-        i_leaf +=1
-        #'''
-    return
-
-def func_ReduceSize(nbFiles):
-    print("func_ReduceSize")
-    
-    fileList = getListFiles(folderName) # get the list of the root files in the folderName folder
-    fileList.sort()
-    print('there is %d files' % len(fileList))
-    fileList = fileList[0:nbFiles]
-    print('file list :')
-    print(fileList)
-    print('-- end --')
-
-    for elem in fileList:
-        input_file = folderName + str(elem.split()[0])
-        print('\n %s' % input_file)
-
-        paths = ['DQMData/Run 1/EgammaV', 'DQMData/Run 1/Info']
-
-        f_rel = ROOT.TFile(input_file, "UPDATE")
-        racine = input_file.split('.')
-        f_out = TFile(racine[0] + 'b.' + racine[1], 'recreate')
-        t2 = f_rel.GetListOfKeys()
-        print(racine[0] + 'b.' + racine[1])
-        for elem in paths:
-            checkLevel(f_rel, f_out, "", t2, 0, elem)
-
-        f_out.Close()
-        f_rel.Close()
-
-    return
 
 def func_CreateKS(br, nbFiles):
     DB = DecisionBox()
@@ -290,11 +119,13 @@ def func_CreateKS(br, nbFiles):
     else:
         print('Folder %s already created\n' % folder)
 
+    ##### TEMP #####
+    LOG_SOURCE_WORK='/pbs/home/c/chiron/private/KS_Tools/GenExtract/'
     # get the "new" root file datas
-    f_rel = ROOT.TFile(input_rel_file)
+    f_rel = ROOT.TFile(LOG_SOURCE_WORK + input_rel_file)
 
     # get the "reference" root file datas
-    f_ref = ROOT.TFile(input_ref_file)
+    f_ref = ROOT.TFile(LOG_SOURCE_WORK + input_ref_file)
 
     print('we use the %s file as reference' % input_ref_file)
     print('we use the %s file as new release' % input_rel_file)
@@ -318,7 +149,7 @@ def func_CreateKS(br, nbFiles):
     print("KSname 2 : %s" % KS_pValues)
     wKSp = open(KS_pValues, 'w')
 
-    ind_reference = 1#99 # np.random.randint(0, nbFiles)
+    ind_reference = 199 # np.random.randint(0, nbFiles)
     print('reference ind. : %d' % ind_reference)
 
     tic = time.time()
@@ -715,20 +546,12 @@ if __name__=="__main__":
     # get the branches for ElectronMcSignalHistos.txt
     branches = []
     branches = getBranches(tp_1)
-    print(branches[0:10])
-    #branches = branches[25:35]
     cleanBranches(branches) # remove some histo wich have a pbm with KS.
 
     # nb of files to be used
-    nbFiles = 27
+    nbFiles = 750
 
-    #func_ReduceSize(nbFiles)
-    
-    #func_Extract(branches[0:5], nbFiles) # create file with histo datas.
-    #func_Extract(branches, nbFiles) # create file with histo datas.
-
-    func_CreateKS(branches[0:5], nbFiles) # create the KS files from histos datas for datasets
-    #func_CreateKS(branches, nbFiles)  # create the KS files from histos datas
+    func_CreateKS(branches, nbFiles)  # create the KS files from histos datas
 
     print("Fin !")
 

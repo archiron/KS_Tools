@@ -66,9 +66,9 @@ if __name__=="__main__":
     print("KSname 2 : %s" % KS_pValues)
     wKSp = open(KS_pValues, 'r')
 
-    histo1= TH1F('KS 1', 'KS 1', 50,0.,1.)
-    histo2= TH1F('KS 2', 'KS 2', 50,0.,1.)
-    histo3= TH1F('KS 3', 'KS 3', 50,0.,1.)
+    histo1= TH1F('KS 1', 'KS 1', 100,0.,1.)
+    histo2= TH1F('KS 2', 'KS 2', 100,0.,1.)
+    histo3= TH1F('KS 3', 'KS 3', 100,0.,1.)
 
     v = wKSp.readlines()
     for elem in v:

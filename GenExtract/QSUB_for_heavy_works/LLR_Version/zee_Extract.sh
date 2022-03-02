@@ -22,5 +22,4 @@ cd -
 python3 $1/reduceSize.py
 #python3 $1/extractValues.py
 #python3 /pbs/home/c/chiron/private/KS_Tools/GenExtract/createFiles.py
-python3 /pbs/home/c/chiron/private/KS_Tools/GenExtract/zeeMapDiff.py
 

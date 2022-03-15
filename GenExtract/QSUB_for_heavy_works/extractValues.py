@@ -32,11 +32,17 @@ ROOT.gSystem.Load("libDataFormatsFWLite.so")
 ROOT.FWLiteEnabler.enable()
 
 sys.path.append('../ChiLib_CMS_Validation')
+import default as df
 from default import *
 from sources import *
 
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
+
+def checkFolderName(folderName):
+    if folderName[-1] != '/':
+        folderName += '/'
+    return folderName
 
 def getHisto(file, tp):
     #t1 = file.Get("DQMData")
@@ -105,7 +111,7 @@ def cleanBranches(branches):
 
 def func_Extract(br, nbFiles): # read files
     print("func_Extract")
-    
+    df.folderName = checkFolderName(df.folderName)    
     branches = []
     wr = []
     histos = {}
@@ -118,7 +124,7 @@ def func_Extract(br, nbFiles): # read files
     for leaf in branches:
         histos[leaf] = []
     
-    fileList = getListFiles(folderName) # get the list of the root files in the folderName folder
+    fileList = getListFiles(df.folderName) # get the list of the root files in the folderName folder
     fileList.sort()
     print('there is %d files' % len(fileList))
     fileList = fileList[0:nbFiles]
@@ -127,8 +133,8 @@ def func_Extract(br, nbFiles): # read files
     print('-- end --')
 
     for elem in fileList:
-        input_file = folderName + str(elem.split()[0])
-        name_1 = input_file.replace(folderName, '').replace('DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_', '').replace('.root', '')
+        input_file = df.folderName + str(elem.split()[0])
+        name_1 = input_file.replace(df.folderName, '').replace('DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_', '').replace('.root', '')
         print('\n %s - name_1 : %s' % (input_file, colorText(name_1, 'lightyellow')))
         
         f_root = ROOT.TFile(input_file) # 'DATA/' + 
@@ -163,7 +169,7 @@ def func_Extract(br, nbFiles): # read files
     #print histos into histo named files
     i_leaf = 0
     for leaf in branches:
-        wr.append(open(folderName + 'histo_' + str(leaf) + '_' + '{:03d}'.format(nbFiles) + '_0_lite.txt', 'w'))
+        wr.append(open(df.folderName + 'histo_' + str(leaf) + '_' + '{:03d}'.format(nbFiles) + '_0_lite.txt', 'w'))
         nb_max = len(histos[leaf][0]) - 1
         print("== %s == nb_max : %d" % (leaf, nb_max))
         wr[i_leaf].write('evol,Mean,MeanError,StdDev,nbBins,name,')
@@ -193,7 +199,7 @@ if __name__=="__main__":
     cleanBranches(branches) # remove some histo wich have a pbm with KS.
 
     # nb of files to be used
-    nbFiles = 27
+    nbFiles = 200
 
     func_Extract(branches, nbFiles) # create file with histo datas.
 

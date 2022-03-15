@@ -14,8 +14,8 @@
 #############################################################################
 # fixed data for zeeExtract for KS
 tp_1 = 'ElectronMcSignalValidator'
-folderName = '/sps/cms/chiron/CMSSW_12_1_0_pre5-16c-3/' # be careful to not forget the '/' at the end of the path - CCA
+folderName = '/sps/cms/chiron/CMSSW_12_1_0_pre5-16c-3/0009/' # be careful to not forget the '/' at the end of the path - CCA
 #folderName = '/data_CMS/cms/chiron/HGCAL/CMSSW_12_0_0_pre1-16c-2/' # cca
 #folderName = '/data_CMS/cms/chiron/HGCAL/CMSSW_12_1_0_pre5-16c-1/' # polui
-folder = 'TMP_Extraction_20d/'
+folder = 'Extraction_18/'
 #############################################################################

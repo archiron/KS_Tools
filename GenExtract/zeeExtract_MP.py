@@ -41,6 +41,7 @@ ROOT.gSystem.Load("libDataFormatsFWLite.so")
 ROOT.FWLiteEnabler.enable()
 
 sys.path.append('../ChiLib_CMS_Validation')
+import default as df
 from graphicFunctions import getHisto
 from default import *
 from DecisionBox import DecisionBox
@@ -48,6 +49,11 @@ from sources import *
 
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
+
+def checkFolderName(folderName):
+    if folderName[-1] != '/':
+        folderName += '/'
+    return folderName
 
 def changeColor(color):
     # 30:noir ; 31:rouge; 32:vert; 33:orange; 34:bleu; 35:violet; 36:turquoise; 37:blanc
@@ -169,7 +175,8 @@ def cleanBranches(branches):
 
 def func_Extract(br, nbFiles): # read files
     print("func_Extract")
-    
+    df.folderName = checkFolderName(df.folderName)
+
     branches = []
     wr = []
     histos = {}
@@ -249,7 +256,8 @@ def func_Extract(br, nbFiles): # read files
 
 def func_ReduceSize(nbFiles):
     print("func_ReduceSize")
-    
+    df.folderName = checkFolderName(df.folderName)
+
     fileList = getListFiles(folderName) # get the list of the root files in the folderName folder
     fileList.sort()
     print('there is %d files' % len(fileList))
@@ -280,11 +288,12 @@ def func_ReduceSize(nbFiles):
 def createKS_Curve(df, ttlD, yC1, yCC1, histo_name, diffMax0, nbins, str_nb):
     # Kolmogoroff-Smirnov curve
     DB = DecisionBox()
+    df.folder = checkFolderName(df.folder)
 
-    KSname1 = folder + "histo_" + histo_name + "_KScurve" + str_nb + ".txt"
+    KSname1 = df.folder + "histo_" + histo_name + "_KScurve" + str_nb + ".txt"
     wKS1 = open(KSname1, 'w')      
     seriesTotalDiff = pd.DataFrame(ttlD, columns=['KSDiff'])
-    KSDiffname1 = folder + '/KSDiffValues_' + str_nb + '_' + histo_name + '.txt'
+    KSDiffname1 = df.folder + '/KSDiffValues_' + str_nb + '_' + histo_name + '.txt'
     df.to_csv(KSDiffname1)
     plt_diff_KS1 = seriesTotalDiff.plot.hist(bins=nbins, title='KS diff.' + str_nb)
     print('\n%s :: diffMin0/sTD.min 1 : %f/%f' % (histo_name, diffMax0, seriesTotalDiff.values.min()))
@@ -296,12 +305,12 @@ def createKS_Curve(df, ttlD, yC1, yCC1, histo_name, diffMax0, nbins, str_nb):
     ymi, yMa = plt_diff_KS1.get_ylim()
     plt_diff_KS1.vlines(x1, ymi, 0.9*yMa, color=color1, linewidth=4)
     fig = plt_diff_KS1.get_figure()
-    fig.savefig(folder + '/KS-ttlDiff_' + str_nb + '_' + histo_name + '.png')
+    fig.savefig(df.folder + '/KS-ttlDiff_' + str_nb + '_' + histo_name + '.png')
     fig.clf()
     count, division = np.histogram(seriesTotalDiff[~np.isnan(seriesTotalDiff)], bins=nbins)
     div_min = np.amin(division)
     div_max = np.amax(division)
-    KSDiffHistoname1 = folder + '/KSDiffHistoValues_' + str_nb + '_' + histo_name + '.txt'
+    KSDiffHistoname1 = df.folder + '/KSDiffHistoValues_' + str_nb + '_' + histo_name + '.txt'
     wKSDiff1 = open(KSDiffHistoname1, 'w')
     wKSDiff1.write(' '.join("{:10.04e}".format(x) for x in count))
     wKSDiff1.write('\n')
@@ -335,6 +344,8 @@ def createKS_Curve(df, ttlD, yC1, yCC1, histo_name, diffMax0, nbins, str_nb):
     return aa, pValue/I_max
 
 def createAll(args):
+    df.folderName = checkFolderName(df.folderName)
+    df.folder = checkFolderName(df.folder)
     DB = DecisionBox()
     #print(args)
     histo_name = args[0]
@@ -342,7 +353,7 @@ def createAll(args):
     histo_2 = args[2]
     nbins = args[3]
     ind_reference = args[4]
-    name = folderName + "histo_" + histo_name + '_{:03d}'.format(nbFiles) + "_0_lite.txt"
+    name = df.folderName + "histo_" + histo_name + '_{:03d}'.format(nbFiles) + "_0_lite.txt"
     print('\n%s - %s' %(histo_name, name))
     df = pd.read_csv(name)
         
@@ -466,7 +477,7 @@ def createAll(args):
         series0 = df_entries.iloc[k,:]
         curves = DB.funcKS(series0)
         plt.plot(curves)
-    fig.savefig(folder + '/cumulative_curve_' + histo_name + '.png')
+    fig.savefig(df.folder + '/cumulative_curve_' + histo_name + '.png')
     fig.clf()
     
     # ================================ #
@@ -524,7 +535,8 @@ def createAll(args):
 
 def func_CreateKS(br, nbFiles):
     print("func_Extract")
-    
+    df.folder = checkFolderName(df.folder)
+
     branches = br
     N_histos = len(branches)
     print('N_histos : %d' % N_histos)
@@ -559,15 +571,15 @@ def func_CreateKS(br, nbFiles):
     nb_red3 = 0
     nb_green3 = 0
 
-    KS_diffName = folder + "histo_differences_KScurve.txt"
+    KS_diffName = df.folder + "histo_differences_KScurve.txt"
     print("KSname 1 : %s" % KS_diffName)
     wKS0 = open(KS_diffName, 'w')
 
-    KS_resume = folder + "histo_resume.txt"
+    KS_resume = df.folder + "histo_resume.txt"
     print("KSname 0 : %s" % KS_resume)
     wKS_ = open(KS_resume, 'w')
 
-    KS_pValues = folder + "histo_pValues.txt"
+    KS_pValues = df.folder + "histo_pValues.txt"
     print("KSname 2 : %s" % KS_pValues)
     wKSp = open(KS_pValues, 'w')
 

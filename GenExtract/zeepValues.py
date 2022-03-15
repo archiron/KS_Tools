@@ -29,6 +29,12 @@ ROOT.FWLiteEnabler.enable()
 
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
+import default as df
+
+def checkFolderName(folderName):
+    if folderName[-1] != '/':
+        folderName += '/'
+    return folderName
 
 def createHistoPicture(histo1, filename):
     cnv = TCanvas(str(id), "canvas")
@@ -61,8 +67,10 @@ def createHistoPicture(histo1, filename):
     return
     
 if __name__=="__main__":
-  
-    KS_pValues = folder + "histo_pValues.txt"
+    df.folderName = checkFolderName(df.folderName)
+    df.folder = checkFolderName(df.folder)
+
+    KS_pValues = df.folder + "histo_pValues.txt"
     print("KSname 2 : %s" % KS_pValues)
     wKSp = open(KS_pValues, 'r')
 
@@ -79,9 +87,9 @@ if __name__=="__main__":
         histo2.Fill(float(a[2])) # pvalue2
         histo3.Fill(float(a[3])) # pvalue3
     
-    createHistoPicture(histo1, folder + 'KS_1.png')
-    createHistoPicture(histo2, folder + 'KS_2.png')
-    createHistoPicture(histo3, folder + 'KS_3.png')
+    createHistoPicture(histo1, df.folder + 'KS_1.png')
+    createHistoPicture(histo2, df.folder + 'KS_2.png')
+    createHistoPicture(histo3, df.folder + 'KS_3.png')
     
     print("Fin !")
 

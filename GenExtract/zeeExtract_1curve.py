@@ -41,6 +41,7 @@ ROOT.gSystem.Load("libDataFormatsFWLite.so")
 ROOT.FWLiteEnabler.enable()
 
 sys.path.append('../ChiLib_CMS_Validation')
+import default as df
 from graphicFunctions import getHisto
 from default import *
 from DecisionBox import DecisionBox
@@ -48,6 +49,11 @@ from sources import *
 
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
+
+def checkFolderName(folderName):
+    if folderName[-1] != '/':
+        folderName += '/'
+    return folderName
 
 def changeColor(color):
     # 30:noir ; 31:rouge; 32:vert; 33:orange; 34:bleu; 35:violet; 36:turquoise; 37:blanc
@@ -158,7 +164,7 @@ def diffR2(s0,s1):
 
 def func_Extract(br, nbFiles): # read files
     print("func_Extract")
-    
+    df.folderName = checkFolderName(df.folderName)
     branches = []
     wr = []
     histos = {}
@@ -171,7 +177,7 @@ def func_Extract(br, nbFiles): # read files
     for leaf in branches:
         histos[leaf] = []
     
-    fileList = getListFiles(folderName) # get the list of the root files in the folderName folder
+    fileList = getListFiles(df.folderName) # get the list of the root files in the folderName folder
     fileList.sort()
     print('there is %d files' % len(fileList))
     fileList = fileList[0:nbFiles]
@@ -180,8 +186,8 @@ def func_Extract(br, nbFiles): # read files
     print('-- end --')
 
     for elem in fileList:
-        input_file = folderName + str(elem.split()[0])
-        name_1 = input_file.replace(folderName, '').replace('DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_', '').replace('.root', '')
+        input_file = df.folderName + str(elem.split()[0])
+        name_1 = input_file.replace(df.folderName, '').replace('DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_', '').replace('.root', '')
         print('\n %s - name_1 : %s' % (input_file, colorText(name_1, 'lightyellow')))
         
         f_root = ROOT.TFile(input_file) # 'DATA/' + 
@@ -216,7 +222,7 @@ def func_Extract(br, nbFiles): # read files
     #print histos into histo named files
     i_leaf = 0
     for leaf in branches:
-        wr.append(open(folderName + 'histo_' + str(leaf) + '_' + '{:03d}'.format(nbFiles) + '_0_lite.txt', 'w'))
+        wr.append(open(df.folderName + 'histo_' + str(leaf) + '_' + '{:03d}'.format(nbFiles) + '_0_lite.txt', 'w'))
         nb_max = len(histos[leaf][0]) - 1
         print("== %s == nb_max : %d" % (leaf, nb_max))
         wr[i_leaf].write('evol,Mean,MeanError,StdDev,nbBins,name,')
@@ -240,8 +246,9 @@ def func_Extract(br, nbFiles): # read files
 
 def func_ReduceSize(nbFiles):
     print("func_ReduceSize")
+    df.folderName = checkFolderName(df.folderName)
     
-    fileList = getListFiles(folderName) # get the list of the root files in the folderName folder
+    fileList = getListFiles(df.folderName) # get the list of the root files in the folderName folder
     fileList.sort()
     print('there is %d files' % len(fileList))
     fileList = fileList[0:nbFiles]
@@ -250,7 +257,7 @@ def func_ReduceSize(nbFiles):
     print('-- end --')
 
     for elem in fileList:
-        input_file = folderName + str(elem.split()[0])
+        input_file = df.folderName + str(elem.split()[0])
         print('\n %s' % input_file)
 
         paths = ['DQMData/Run 1/EgammaV', 'DQMData/Run 1/Info']
@@ -271,7 +278,9 @@ def func_ReduceSize(nbFiles):
 def func_CreateKS(br, nbFiles):
     DB = DecisionBox()
     print("func_Extract")
-    
+    df.folderName = checkFolderName(df.folderName)
+    df.folder = checkFolderName(df.folder)
+
     branches = br
     N_histos = len(branches)
     print('N_histos : %d' % N_histos)
@@ -306,15 +315,15 @@ def func_CreateKS(br, nbFiles):
     nb_red3 = 0
     nb_green3 = 0
 
-    KS_diffName = folder + "histo_differences_KScurve.txt"
+    KS_diffName = df.folder + "histo_differences_KScurve.txt"
     print("KSname 1 : %s" % KS_diffName)
     wKS0 = open(KS_diffName, 'w')
 
-    KS_resume = folder + "histo_resume.txt"
+    KS_resume = df.folder + "histo_resume.txt"
     print("KSname 0 : %s" % KS_resume)
     wKS_ = open(KS_resume, 'w')
 
-    KS_pValues = folder + "histo_pValues.txt"
+    KS_pValues = df.folder + "histo_pValues.txt"
     print("KSname 2 : %s" % KS_pValues)
     wKSp = open(KS_pValues, 'w')
 
@@ -324,7 +333,7 @@ def func_CreateKS(br, nbFiles):
     tic = time.time()
 
     for i in range(0, N_histos): # 1 histo for debug
-        name = folderName + "histo_" + branches[i] + '_{:03d}'.format(nbFiles) + "_0_lite.txt"
+        name = df.folderName + "histo_" + branches[i] + '_{:03d}'.format(nbFiles) + "_0_lite.txt"
         print('\n%d - %s' %(i, name))
         df = pd.read_csv(name)
         
@@ -382,9 +391,9 @@ def func_CreateKS(br, nbFiles):
             continue
 
         # create file for KS curve
-        KSname1 = folder + "histo_" + branches[i] + "_KScurve1.txt"
-        KSname2 = folder + "histo_" + branches[i] + "_KScurve2.txt"
-        KSname3 = folder + "histo_" + branches[i] + "_KScurve3.txt"
+        KSname1 = df.folder + "histo_" + branches[i] + "_KScurve1.txt"
+        KSname2 = df.folder + "histo_" + branches[i] + "_KScurve2.txt"
+        KSname3 = df.folder + "histo_" + branches[i] + "_KScurve3.txt"
         print("KSname 1 : %s" % KSname1)
         print("KSname 2 : %s" % KSname2)
         print("KSname 3 : %s" % KSname3)
@@ -473,7 +482,7 @@ def func_CreateKS(br, nbFiles):
             series0 = df_entries.iloc[k,:]
             curves = DB.funcKS(series0)
             plt.plot(curves)
-        fig.savefig(folder + '/cumulative_curve_' + branches[i] + '.png')
+        fig.savefig(df.folder + '/cumulative_curve_' + branches[i] + '.png')
         fig.clf()
     
         # ================================ #
@@ -507,7 +516,7 @@ def func_CreateKS(br, nbFiles):
 
         # Kolmogoroff-Smirnov curve
         seriesTotalDiff1 = pd.DataFrame(totalDiff, columns=['KSDiff'])
-        KSDiffname1 = folder + '/KSDiffValues_1_' + branches[i] + '.csv'
+        KSDiffname1 = df.folder + '/KSDiffValues_1_' + branches[i] + '.csv'
         df.to_csv(KSDiffname1)
         plt_diff_KS1 = seriesTotalDiff1.plot.hist(bins=nbins, title='KS diff. 1')
         print('\ndiffMin0/sTD.min 1 : %f/%f' % (diffMax0, seriesTotalDiff1.values.min()))
@@ -528,12 +537,12 @@ def func_CreateKS(br, nbFiles):
         ymi, yMa = plt_diff_KS1.get_ylim()
         plt_diff_KS1.vlines(x1, ymi, 0.9*yMa, color=color1, linewidth=4)
         fig = plt_diff_KS1.get_figure()
-        fig.savefig(folder + '/KS-ttlDiff_1_' + branches[i] + '.png')
+        fig.savefig(df.folder + '/KS-ttlDiff_1_' + branches[i] + '.png')
         fig.clf()
         count, division = np.histogram(seriesTotalDiff1[~np.isnan(seriesTotalDiff1)], bins=nbins)
         div_min = np.amin(division)
         div_max = np.amax(division)
-        KSDiffHistoname1 = folder + '/KSDiffHistoValues_1_' + branches[i] + '.csv'
+        KSDiffHistoname1 = df.folder + '/KSDiffHistoValues_1_' + branches[i] + '.csv'
         wKSDiff1 = open(KSDiffHistoname1, 'w')
         wKSDiff1.write(' '.join("{:10.04e}".format(x) for x in count))
         wKSDiff1.write('\n')
@@ -584,12 +593,12 @@ def func_CreateKS(br, nbFiles):
         ymi, yMa = plt_diff_KS2.get_ylim()
         plt_diff_KS2.vlines(x2, ymi, 0.9*yMa, color=color2, linewidth=4)
         fig = plt_diff_KS2.get_figure()
-        fig.savefig(folder + '/KS-ttlDiff_2_' + branches[i] + '.png')
+        fig.savefig(df.folder + '/KS-ttlDiff_2_' + branches[i] + '.png')
         fig.clf()
         count, division = np.histogram(seriesTotalDiff2, bins=nbins)
         div_min = np.amin(division)
         div_max = np.amax(division)
-        KSDiffHistoname2 = folder + '/KSDiffHistoValues_2_' + branches[i] + '.csv'
+        KSDiffHistoname2 = df.folder + '/KSDiffHistoValues_2_' + branches[i] + '.csv'
         wKSDiff2 = open(KSDiffHistoname2, 'w')
         wKSDiff2.write(' '.join("{:10.04e}".format(x) for x in count))
         wKSDiff2.write('\n')
@@ -639,12 +648,12 @@ def func_CreateKS(br, nbFiles):
         ymi, yMa = plt_diff_KS3.get_ylim()
         plt_diff_KS3.vlines(x3, ymi, 0.9*yMa, color=color3, linewidth=4)
         fig = plt_diff_KS3.get_figure()
-        fig.savefig(folder + '/KS-ttlDiff_3_' + branches[i] + '.png')
+        fig.savefig(df.folder + '/KS-ttlDiff_3_' + branches[i] + '.png')
         fig.clf()
         count, division = np.histogram(seriesTotalDiff3, bins=nbins)
         div_min = np.amin(division)
         div_max = np.amax(division)
-        KSDiffHistoname3 = folder + '/KSDiffHistoValues_3_' + branches[i] + '.csv'
+        KSDiffHistoname3 = df.folder + '/KSDiffHistoValues_3_' + branches[i] + '.csv'
         wKSDiff3 = open(KSDiffHistoname3, 'w')
         wKSDiff3.write(' '.join("{:10.04e}".format(x) for x in count))
         wKSDiff3.write('\n')
@@ -720,7 +729,7 @@ if __name__=="__main__":
     cleanBranches(branches) # remove some histo wich have a pbm with KS.
 
     # nb of files to be used
-    nbFiles = 27
+    nbFiles = 95
 
     #func_ReduceSize(nbFiles)
     

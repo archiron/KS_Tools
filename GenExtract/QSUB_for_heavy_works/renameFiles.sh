@@ -1,13 +1,11 @@
 #!/bin/bash
 
-#RESULTFOLDER='/sps/cms/chiron/CMSSW_12_1_0_pre5-16c-1'
-RESULTFOLDER='/sps/cms/chiron/9000-test3'
-number=1000
+RESULTFOLDER='/sps/cms/chiron/CMSSW_12_1_0_pre5-16c-1'
 
 for value in $(seq -f "%03g" 0 749)
 do
-name=$RESULTFOLDER'/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_'$number'_'$value'b.root'
-newName=$RESULTFOLDER'/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_'$number'_'$value'.root'
+name=$RESULTFOLDER'/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_'$value'b.root'
+newName=$RESULTFOLDER'/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO_9000_'$value'.root'
 
 if [ ! -f "$name" ]; then
     echo "$name does not exist."

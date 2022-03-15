@@ -40,6 +40,7 @@ ROOT.FWLiteEnabler.enable()
 sys.path.append('../ChiLib_CMS_Validation')
 Chilib_path = '/pbs/home/c/chiron/private/KS_Tools/ChiLib_CMS_Validation'
 sys.path.append(Chilib_path)
+import default as df
 from default import *
 from sources import *
 from graphicFunctions import getHisto
@@ -47,6 +48,11 @@ from DecisionBox import DecisionBox
 
 # these line for daltonians !
 #seaborn.set_palette('colorblind')
+
+def checkFolderName(folderName):
+    if folderName[-1] != '/':
+        folderName += '/'
+    return folderName
 
 def changeColor(color):
     # 30:noir ; 31:rouge; 32:vert; 33:orange; 34:bleu; 35:violet; 36:turquoise; 37:blanc
@@ -98,7 +104,9 @@ def cleanBranches(branches):
 def func_CreateMap(br, nbFiles):
     DB = DecisionBox()
     print("func_Extract")
-    
+    df.folderName = checkFolderName(df.folderName)
+    df.folder = checkFolderName(df.folder)
+
     branches = br
     N_histos = len(branches)
     print('N_histos : %d' % N_histos)
@@ -145,7 +153,7 @@ def func_CreateMap(br, nbFiles):
         s_new = s_new[1:-1]
         Ntot_h1 = histo_1.GetEntries()
         
-        name = folderName + "histo_" + branches[i] + '_{:03d}'.format(nbFiles) + "_0_lite.txt"
+        name = df.folderName + "histo_" + branches[i] + '_{:03d}'.format(nbFiles) + "_0_lite.txt"
         print('\n%d - %s' %(i, name))
         df = pd.read_csv(name)
 
@@ -188,7 +196,7 @@ def func_CreateMap(br, nbFiles):
         ax.set_title('Filled Contours Plot')
         ax.set_xlabel('file number')
         ax.set_ylabel('file number')
-        fig.savefig(folder + '/map-ttlDiff_1_' + '_{:03d}'.format(nbFiles) + '_' + branches[i] + '.png')
+        fig.savefig(df.folder + '/map-ttlDiff_1_' + '_{:03d}'.format(nbFiles) + '_' + branches[i] + '.png')
         fig.clf()
 
         # print 1 line
@@ -199,7 +207,7 @@ def func_CreateMap(br, nbFiles):
         ax.set_title('one line Plot')
         ax.set_xlabel('file number')
         ax.set_ylabel('diff values')
-        fig.savefig(folder + '/line-ttlDiff_1_' + '_{:03d}'.format(nbFiles) + '_' + branches[i] + '.png')
+        fig.savefig(df.folder + '/line-ttlDiff_1_' + '_{:03d}'.format(nbFiles) + '_' + branches[i] + '.png')
         fig.clf()
 
         '''
@@ -227,7 +235,7 @@ def func_CreateMap(br, nbFiles):
         ax.set_title('Filled Contours Plot')
         ax.set_xlabel('file number')
         ax.set_ylabel('file number')
-        fig.savefig(folder + '/map-ttlDiff_2_' + '_{:03d}'.format(nbFiles) + '_' + branches[i] + '.png')
+        fig.savefig(df.folder + '/map-ttlDiff_2_' + '_{:03d}'.format(nbFiles) + '_' + branches[i] + '.png')
         fig.clf()
     
         # create the datas for the p-Value graph
@@ -248,7 +256,7 @@ def func_CreateMap(br, nbFiles):
         ax.set_title('Filled Contours Plot')
         ax.set_xlabel('file number')
         ax.set_ylabel('file number')
-        fig.savefig(folder + '/map-ttlDiff_3_' + '_{:03d}'.format(nbFiles) + '_' + branches[i] + '.png')
+        fig.savefig(df.folder + '/map-ttlDiff_3_' + '_{:03d}'.format(nbFiles) + '_' + branches[i] + '.png')
         fig.clf()
         '''
     

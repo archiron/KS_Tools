@@ -20,12 +20,10 @@ cd -
 cd $2
 #python3 $1/reduceSize.py
 #echo "executing $1/reduceSize.py"
-python3 $2/extractValues.py
-echo "executing $2/extractValues.py"
-#python3 $1/extrGT.py
-#echo "executing $1/extrGT.py"
-#python3 $2/createFiles.py
-#echo "executing $2/reduccreateFileseSize.py"
-python3 $2/zeeMapDiff.py
-echo "executing $2/zeeMapDiff.py"
+#python3 $1/extractValues.py
+#echo "executing $1/extractValues.py"
+#python3 $1/createFiles.py
+#echo "executing $1/reduccreateFileseSize.py"
+python3 $1/zeeMapDiff.py
+#echo "executing $1/zeeMapDiff.py"
 
